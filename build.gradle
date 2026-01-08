@@ -1,7 +1,7 @@
 plugins {
     id 'eclipse'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.88'
+    id 'net.neoforged.moddev' version '2.0.116'
 }
 
 version = "v${mod_version}-mc${mc_version}"
@@ -53,10 +53,17 @@ neoForge {
             logLevel = org.slf4j.event.Level.WARN
         }
 
-        client {
+        kapitenClient {
             client()
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             programArguments.addAll '--username', 'Kapitencraft', '--uuid', '00c930fd-9d29-44ca-b614-e5ce6e8bd457'
+        }
+
+        client {
+            client()
+
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
         kaupenClient {
