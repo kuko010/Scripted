@@ -1,8 +1,9 @@
-package net.kapitencraft.scripted.edit.graphical.widgets;
+package net.kapitencraft.scripted.edit.graphical.widgets.expr;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.NotNull;
@@ -10,26 +11,26 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class SelectionWidget implements CodeWidget {
-    public static final MapCodec<SelectionWidget> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+public class ListSelectionWidget implements ExprCodeWidget {
+    public static final MapCodec<ListSelectionWidget> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.STRING.listOf().fieldOf("entries").forGetter(w -> w.entries)
-    ).apply(i, SelectionWidget::new));
+    ).apply(i, ListSelectionWidget::new));
 
     private final List<String> entries;
     private int index;
 
-    public SelectionWidget(List<String> entries) {
+    public ListSelectionWidget(List<String> entries) {
         this.entries = entries;
     }
 
-    private SelectionWidget(List<String> entries, int index) {
+    private ListSelectionWidget(List<String> entries, int index) {
         this(entries);
         this.index = index;
     }
 
     @Override
-    public CodeWidget copy() {
-        return new SelectionWidget(
+    public ExprCodeWidget copy() {
+        return new ListSelectionWidget(
                 this.entries,
                 this.index
         );
@@ -37,7 +38,7 @@ public class SelectionWidget implements CodeWidget {
 
     @Override
     public @NotNull Type getType() {
-        return Type.SELECTION;
+        return Type.LIST_SELECTION;
     }
 
     @Override
@@ -56,7 +57,7 @@ public class SelectionWidget implements CodeWidget {
     }
 
     @Override
-    public @Nullable WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
+    public @Nullable BlockWidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
         return null;
     }
 }

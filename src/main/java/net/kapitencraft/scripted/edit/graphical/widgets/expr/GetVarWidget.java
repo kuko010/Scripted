@@ -1,14 +1,15 @@
-package net.kapitencraft.scripted.edit.graphical.widgets;
+package net.kapitencraft.scripted.edit.graphical.widgets.expr;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class GetVarWidget implements CodeWidget {
+public class GetVarWidget implements ExprCodeWidget {
     public static final MapCodec<GetVarWidget> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.STRING.fieldOf("name").forGetter(w -> w.name)
     ).apply(i, GetVarWidget::new));
@@ -30,7 +31,7 @@ public class GetVarWidget implements CodeWidget {
     }
 
     @Override
-    public CodeWidget copy() {
+    public ExprCodeWidget copy() {
         return new GetVarWidget(this.name);
     }
 
@@ -45,7 +46,7 @@ public class GetVarWidget implements CodeWidget {
     }
 
     @Override
-    public @Nullable WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
+    public @Nullable BlockWidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
         return null;
     }
 }

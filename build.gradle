@@ -53,12 +53,23 @@ neoForge {
             logLevel = org.slf4j.event.Level.WARN
         }
 
+<<<<<<< HEAD
         // I wanted to use "dev" isntead of "kapitencraft" user :D
 //        client {
 //            client()
 //            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
 //            programArguments.addAll '--username', 'kapitencraft', '--uuid', '00c930fd-9d29-44ca-b614-e5ce6e8bd457'
 //        }
+
+        client {
+=======
+        kapitenClient {
+>>>>>>> 7eef2f566e7a82a1036034b336326b4ed3af9b40
+            client()
+
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
 
         client {
             client()

@@ -1,14 +1,15 @@
-package net.kapitencraft.scripted.edit.graphical;
+package net.kapitencraft.scripted.edit.graphical.core;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.kapitencraft.kap_lib.config.ClientModConfig;
-import net.kapitencraft.scripted.edit.graphical.ghost.GhostInserter;
+import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
+import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
+import net.kapitencraft.scripted.edit.graphical.inserter.block.BlockGhostInserter;
 import net.kapitencraft.scripted.edit.graphical.selection.SelectionTab;
 import net.kapitencraft.scripted.edit.graphical.widgets.CodeWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.ExprWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.GetVarWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.WidgetFetchResult;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.*;
+import net.kapitencraft.scripted.edit.graphical.widgets.block.BlockCodeWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.block.HeadWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
 import net.minecraft.Util;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -29,11 +30,10 @@ import java.util.List;
 public class GraphicalEditor extends AbstractWidget {
     private final Registry<SelectionTab> tabs;
 
-    private CodeWidget dragged;
+    private CodeWidget draggedWidget;
     private final GhostBlockWidget ghostElement = new GhostBlockWidget();
-    private CodeElement ghostTargetElement;
-    private GhostInserter ghostInserter;
-    private GhostInserter inserter;
+    private BlockCodeElement ghostTargetElement;
+    private BlockGhostInserter blockGhostInserter;
     private int draggedOffsetX, draggedOffsetY;
 
     private final Font font;
@@ -47,46 +47,47 @@ public class GraphicalEditor extends AbstractWidget {
         this.font = font;
 
         this.elements.add(
-                new CodeElement(HeadWidget.builder()
+                new BlockCodeElement(HeadWidget.builder()
                         .setTranslationKey("scripted.code.head.test")
-                        .setChild(
-                                MethodStmtWidget.builder()
-                                        .setSignature("Lnet/minecraft/world/phys/Vec3;dot(Lnet/minecraft/world/phys/Vec3;)D")
-                                        .withArgument("vec3", new GetVarWidget("position"))
-                                        .setChild(VarModWidget.builder()
-                                                .setExpr(ExprWidget.builder()
-                                                        .setTranslationKey("scripted.code.expr.test0")
-                                                        .setType(ExprCategory.BOOLEAN)
-                                                        .withParam("arg0", ExprWidget.builder()
-                                                                .setTranslationKey("scripted.code.expr.test1")
-                                                        )
-                                                ).setChild(WhileLoopWidget.builder()
-                                                        .setCondition(ExprWidget.builder()
-                                                                .setTranslationKey("scripted.code.expr.test0")
-                                                                .setType(ExprCategory.NUMBER)
-                                                                .withParam("arg0", ExprWidget.builder()
-                                                                        .setTranslationKey("scripted.code.expr.test1")
-                                                                )
-                                                        )
-                                                        .setBody(MethodStmtWidget.builder()
-                                                                .setSignature("Lnet/minecraft/world/phys/Vec3;normalize()Lnet/minecraft/world/phys/Vec3;")
-                                                        )
-                                                        .setChild(IfWidget.builder()
-                                                                .setCondition(ExprWidget.builder()
-                                                                        .setTranslationKey("scripted.code.expr.test0")
-                                                                        .setType(ExprCategory.NUMBER)
-                                                                        .withParam("arg0", ExprWidget.builder()
-                                                                                .setTranslationKey("scripted.code.expr.test1")
-                                                                        )
-                                                                )
-                                                                .withBranch(MethodStmtWidget.builder()
-                                                                        .setSignature("Lnet/minecraft/world/phys/Vec3;normalize()Lnet/minecraft/world/phys/Vec3;"))
-                                                                .withElseBranch(MethodStmtWidget.builder()
-                                                                        .setSignature("Lnet/minecraft/world/phys/Vec3;normalize()Lnet/minecraft/world/phys/Vec3;"))
-                                                        )
-                                                )
-                                        ).build()
-                        ).build()
+                        //.setChild(
+                        //        MethodStmtWidget.builder()
+                        //                .setSignature("Lnet/minecraft/world/phys/Vec3;dot(Lnet/minecraft/world/phys/Vec3;)D")
+                        //                .withArgument("vec3", new GetVarWidget("position"))
+                        //                .setChild(VarModWidget.builder()
+                        //                        .setExpr(ExprWidget.builder()
+                        //                                .setTranslationKey("scripted.code.expr.test0")
+                        //                                .setType(ExprCategory.BOOLEAN)
+                        //                                .withParam("arg0", ExprWidget.builder()
+                        //                                        .setTranslationKey("scripted.code.expr.test1")
+                        //                                )
+                        //                        ).setChild(WhileLoopWidget.builder()
+                        //                                .setCondition(ExprWidget.builder()
+                        //                                        .setTranslationKey("scripted.code.expr.test0")
+                        //                                        .setType(ExprCategory.NUMBER)
+                        //                                        .withParam("arg0", ExprWidget.builder()
+                        //                                                .setTranslationKey("scripted.code.expr.test1")
+                        //                                        )
+                        //                                )
+                        //                                .setBody(MethodStmtWidget.builder()
+                        //                                        .setSignature("Lnet/minecraft/world/phys/Vec3;normalize()Lnet/minecraft/world/phys/Vec3;")
+                        //                                )
+                        //                                .setChild(IfWidget.builder()
+                        //                                        .setCondition(ExprWidget.builder()
+                        //                                                .setTranslationKey("scripted.code.expr.test0")
+                        //                                                .setType(ExprCategory.NUMBER)
+                        //                                                .withParam("arg0", ExprWidget.builder()
+                        //                                                        .setTranslationKey("scripted.code.expr.test1")
+                        //                                                )
+                        //                                        )
+                        //                                        .withBranch(MethodStmtWidget.builder()
+                        //                                                .setSignature("Lnet/minecraft/world/phys/Vec3;normalize()Lnet/minecraft/world/phys/Vec3;"))
+                        //                                        .withElseBranch(MethodStmtWidget.builder()
+                        //                                                .setSignature("Lnet/minecraft/world/phys/Vec3;normalize()Lnet/minecraft/world/phys/Vec3;"))
+                        //                                )
+                        //                        )
+                        //                ).build()
+                        //)
+                        .build()
                 )
         );
     }
@@ -132,7 +133,7 @@ public class GraphicalEditor extends AbstractWidget {
         for (int i = this.elements.size() - 1; i >= 0; i--) { //render first elements last due to earlier elements being overwritten by later ones
             CodeElement element = this.elements.get(i);
             if (element.visible(minX, minY, maxX, maxY)) {
-                element.widget.render(pGuiGraphics, font, element.x, element.y);
+                element.render(pGuiGraphics, font, element.x, element.y);
             }
         }
 
@@ -143,8 +144,8 @@ public class GraphicalEditor extends AbstractWidget {
         pose.pushPose();
         pose.scale(scale, scale, 1);
         pose.translate(0, 0, 100);
-        if (this.dragged != null) {
-            this.dragged.render(pGuiGraphics, font, pMouseX + this.draggedOffsetX, pMouseY + this.draggedOffsetY);
+        if (this.draggedWidget != null) {
+            this.draggedWidget.render(pGuiGraphics, font, pMouseX + this.draggedOffsetX, pMouseY + this.draggedOffsetY);
         }
         pose.popPose();
         //endregion
@@ -168,11 +169,11 @@ public class GraphicalEditor extends AbstractWidget {
             SelectionTab value = tab.value();
             pGuiGraphics.drawString(font, Component.translatable(Util.makeDescriptionId("selection_tab", tab.getKey().location())), 2, y, -1, false);
             y += 10;
-            for (int i1 = 0; i1 < value.widgets().size(); i1++) {
-                CodeWidget widget = value.widgets().get(i1);
+            for (int i1 = 0; i1 < value.size(); i1++) {
+                CodeWidget widget = value.get(i1);
                 widget.render(pGuiGraphics, font, 0, y);
                 y += widget.getHeight();
-                y += 5;
+                y += 10;
             }
         }
         pose.popPose();
@@ -182,7 +183,8 @@ public class GraphicalEditor extends AbstractWidget {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (isPoolAreaHovered(mouseX, mouseY)) {
-            selectionScroll += (float) scrollY;
+            selectionScroll += (float) (scrollY * ClientModConfig.getScrollScale());
+            return true;
         }
         if (Screen.hasControlDown()) {
             /*
@@ -233,19 +235,21 @@ public class GraphicalEditor extends AbstractWidget {
         for (int i = 0; i < this.elements.size(); i++) {
             CodeElement element = this.elements.get(i);
             if (element.hovered(posX, posY)) {
-                WidgetFetchResult result = element.fetchAndRemoveHoveredWidget(posX, posY, font);
-                if (result == null) {
-                    continue;
+                if (element instanceof BlockCodeElement bcW) {
+                    BlockWidgetFetchResult result = bcW.fetchAndRemoveHoveredBlockWidget(posX, posY, font);
+                    if (result == null) {
+                        continue;
+                    }
+                    if (result.widget() != bcW.widget) {
+                        element.recalculateSize();
+                    }
+                    this.draggedWidget = result.widget();
+                    this.draggedOffsetX = -result.x();
+                    this.draggedOffsetY = -result.y();
+                    if (!result.removed())
+                        this.elements.remove(i);
+                    return true;
                 }
-                if (result.widget() != element.widget) {
-                    element.recalculateSize();
-                }
-                this.dragged = result.widget();
-                this.draggedOffsetX = -result.x();
-                this.draggedOffsetY = -result.y();
-                if (!result.removed())
-                    this.elements.remove(i);
-                return true;
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -261,16 +265,16 @@ public class GraphicalEditor extends AbstractWidget {
         for (Holder<SelectionTab> tab : tabs) {
             SelectionTab value = tab.value();
             uY -= 10;
-            for (int i1 = 0; i1 < value.widgets().size(); i1++) {
-                CodeWidget widget = value.widgets().get(i1);
+            for (int i1 = 0; i1 < value.size(); i1++) {
+                CodeWidget widget = value.get(i1);
                 if (uY > 0 && uY < widget.getHeight()) {
-                    this.dragged = widget.copy();
+                    this.draggedWidget = widget.copy();
                     this.draggedOffsetX = -uX;
                     this.draggedOffsetY = -uY;
                     return;
                 }
                 uY -= widget.getHeight();
-                uY -= 5;
+                uY -= 10;
             }
         }
     }
@@ -282,25 +286,26 @@ public class GraphicalEditor extends AbstractWidget {
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
-        if (dragged != null && dragged instanceof BlockWidget && !isPoolAreaHovered(mouseX, mouseY)) {
+        if (draggedWidget != null && draggedWidget instanceof BlockCodeWidget && !isPoolAreaHovered(mouseX, mouseY)) {
             int draggedUiX = (int) ((mouseX + draggedOffsetX) / scale - scrollX) - getX();
             int draggedUiY = (int) ((mouseY + draggedOffsetY) / scale - scrollY) - getY();
-            GhostInserter inserter;
+            BlockGhostInserter inserter;
             for (CodeElement element : elements) {
+
                 if ((inserter = element.getGhostBlockWidget(draggedUiX, draggedUiY)) != null) {
-                    if (!inserter.equals(ghostInserter)) {
-                        if (ghostInserter != null)
-                            ghostInserter.insert(ghostElement.getChild());
+                    if (!inserter.equals(blockGhostInserter)) {
+                        if (blockGhostInserter != null)
+                            blockGhostInserter.insert(ghostElement.getChild());
                         inserter.insertChildMiddle(ghostElement);
-                        ghostInserter = inserter;
+                        blockGhostInserter = inserter;
                         ghostTargetElement = element;
                     }
                     return;
                 }
             }
-            if (this.ghostInserter != null) {
-                ghostInserter.insert(this.ghostElement.getChild());
-                ghostInserter = null;
+            if (this.blockGhostInserter != null) {
+                blockGhostInserter.insert(this.ghostElement.getChild());
+                blockGhostInserter = null;
                 ghostTargetElement = null;
             }
         }
@@ -309,65 +314,43 @@ public class GraphicalEditor extends AbstractWidget {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (this.dragged != null) {
-            if (ghostInserter != null && this.dragged instanceof BlockWidget blockWidget) {
+        if (this.draggedWidget != null) {
+            if (blockGhostInserter != null && this.draggedWidget instanceof BlockCodeWidget blockWidget) {
                 blockWidget.setBottomChild(this.ghostElement.getChild());
-                this.ghostInserter.insert(blockWidget);
-                this.ghostInserter = null;
+                this.blockGhostInserter.insert(blockWidget);
+                this.blockGhostInserter = null;
                 this.ghostTargetElement.recalculateSize();
                 this.ghostTargetElement = null;
             } else if (!isPoolAreaHovered(mouseX, mouseY)) { //if pool is hovered, delete the widget
                 int uiX = (int) (mouseX / scale - scrollX) - getX();
                 int uiY = (int) (mouseY / scale - scrollY) - getY();
-                this.elements.addFirst(new CodeElement(this.dragged, uiX + this.draggedOffsetX, uiY + this.draggedOffsetY)); //add as first view and access
+
+                if (this.draggedWidget instanceof BlockCodeWidget bCW) {
+                    this.elements.addFirst(new BlockCodeElement(uiX + this.draggedOffsetX, uiY + this.draggedOffsetY, bCW)); //add as first view and access
+                } else {
+                    this.elements.addFirst(new ExprCodeElement(uiX + this.draggedOffsetX, uiY + this.draggedOffsetY, (ExprCodeWidget) this.draggedWidget));
+                }
             }
-            this.dragged = null;
+            this.draggedWidget = null;
             return true;
         }
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
-    private class CodeElement {
-        private final int x;
-        private final int y;
-        private int width;
-        private int height;
-        private final CodeWidget widget;
+    private abstract static class CodeElement {
+        protected final int x;
+        protected final int y;
+        protected int width;
+        protected int height;
 
-        private CodeElement(CodeWidget widget) {
-            this(widget, 100, 100);
-        }
-
-        private CodeElement(CodeWidget widget, int x, int y) {
-            this.widget = widget;
-            this.recalculateSize();
+        private CodeElement(int x, int y) {
             this.x = x;
             this.y = y;
         }
 
-        private int calculateWidgetWidth() {
-            int width = 0;
-            if (widget instanceof BlockWidget blockWidget) {
-                do {
-                    width += blockWidget.getWidth(font);
-                    blockWidget = blockWidget.getChild();
-                } while (blockWidget != null);
-            } else
-                width = this.widget.getWidth(font);
-            return width;
-        }
+        protected abstract int calculateWidgetWidth();
 
-        private int calculateWidgetHeight() {
-            int height = 0;
-            if (widget instanceof BlockWidget blockWidget) {
-                do {
-                    height += blockWidget.getHeight();
-                    blockWidget = blockWidget.getChild();
-                } while (blockWidget != null);
-            } else
-                height = widget.getHeight();
-            return height;
-        }
+        protected abstract int calculateWidgetHeight();
 
         public boolean hovered(int mouseX, int mouseY) {
             return mouseX > this.x && mouseX < this.x + this.width &&
@@ -378,23 +361,90 @@ public class GraphicalEditor extends AbstractWidget {
             return this.x + width > minX || this.y + height > minY || this.x < maxX || this.y < maxY;
         }
 
-        public WidgetFetchResult fetchAndRemoveHoveredWidget(int posX, int posY, Font font) {
-            return this.widget.fetchAndRemoveHovered(posX - x, posY - y, font);
-        }
-
         public void recalculateSize() {
             this.width = calculateWidgetWidth();
             this.height = calculateWidgetHeight();
         }
 
-        public GhostInserter getGhostBlockWidget(int draggedUiX, int draggedUiY) {
-            if (!(this.widget instanceof BlockWidget blockWidget))
-                return null;
-            return blockWidget.getGhostBlockWidgetTarget(draggedUiX - this.x, draggedUiY - this.y);
+        public abstract void render(GuiGraphics pGuiGraphics, Font font, int x, int y);
+    }
+
+    private class BlockCodeElement extends CodeElement {
+        private final @NotNull BlockCodeWidget widget;
+
+        private BlockCodeElement(@NotNull BlockCodeWidget widget) {
+            this(100, 100, widget);
+        }
+
+        private BlockCodeElement(int x, int y, @NotNull BlockCodeWidget widget) {
+            super(x, y);
+            this.widget = widget;
+            this.recalculateSize();
+        }
+
+        @Override
+        protected int calculateWidgetWidth() {
+            Integer width = null;
+            BlockCodeWidget blockWidget = this.widget;
+            do {
+                if (width == null || blockWidget.getWidth(font) > width) {
+                    width = blockWidget.getWidth(font);
+                }
+                blockWidget = blockWidget.getChild();
+            } while (blockWidget != null);
+            return width;
+        }
+
+        protected int calculateWidgetHeight() {
+            int height = 0;
+            BlockCodeWidget blockWidget = this.widget;
+            do {
+                height += blockWidget.getHeight();
+                blockWidget = blockWidget.getChild();
+            } while (blockWidget != null);
+            return height;
+        }
+
+        public BlockWidgetFetchResult fetchAndRemoveHoveredBlockWidget(int posX, int posY, Font font) {
+            return this.widget.fetchAndRemoveHovered(posX - x, posY - y, font);
+        }
+
+        public BlockGhostInserter getGhostBlockWidget(int draggedUiX, int draggedUiY) {
+            return this.widget.getGhostBlockWidgetTarget(draggedUiX - this.x, draggedUiY - this.y);
+        }
+
+        @Override
+        public void render(GuiGraphics pGuiGraphics, Font font, int x, int y) {
+            this.widget.render(pGuiGraphics, font, x, y);
         }
     }
 
-    private class GhostBlockWidget extends BlockWidget {
+    private class ExprCodeElement extends CodeElement {
+        private final ExprCodeWidget widget;
+
+        private ExprCodeElement(int x, int y, ExprCodeWidget widget) {
+            super(x, y);
+            this.widget = widget;
+            this.recalculateSize();
+        }
+
+        @Override
+        protected int calculateWidgetWidth() {
+            return widget.getWidth(font);
+        }
+
+        @Override
+        protected int calculateWidgetHeight() {
+            return widget.getHeight();
+        }
+
+        @Override
+        public void render(GuiGraphics pGuiGraphics, Font font, int x, int y) {
+            this.widget.render(pGuiGraphics, font, x, y);
+        }
+    }
+
+    private class GhostBlockWidget extends BlockCodeWidget {
 
         @Override
         public @NotNull Type getType() {
@@ -403,16 +453,16 @@ public class GraphicalEditor extends AbstractWidget {
 
         @Override
         public int getWidth(Font font) {
-            return dragged.getWidth(font);
+            return draggedWidget.getWidth(font);
         }
 
         @Override
         public int getHeight() {
-            return dragged.getHeight();
+            return draggedWidget.getHeight();
         }
 
         @Override
-        public GhostInserter getGhostBlockWidgetTarget(int x, int y) {
+        public BlockGhostInserter getGhostBlockWidgetTarget(int x, int y) {
             return null;
         }
 
@@ -425,12 +475,12 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public @Nullable WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
+        public @Nullable BlockWidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
             return null;
         }
 
         @Override
-        public BlockWidget copy() {
+        public BlockCodeWidget copy() {
             throw new IllegalAccessError("attempting to copy ghost widget");
         }
     }
