@@ -47,7 +47,7 @@ public class ListSelectionWidget<T> implements ExprCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
+    public CodeWidget getByName(String arg) {
         throw new IllegalAccessError("can not get from var list selector widget");
     }
 

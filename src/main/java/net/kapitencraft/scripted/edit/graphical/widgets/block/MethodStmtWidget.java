@@ -3,7 +3,7 @@ package net.kapitencraft.scripted.edit.graphical.widgets.block;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
@@ -64,8 +64,8 @@ public class MethodStmtWidget extends BlockCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
-        return args.get(argName);
+    public CodeWidget getByName(String arg) {
+        return args.get(arg);
     }
 
     public static Builder builder() {
@@ -82,12 +82,12 @@ public class MethodStmtWidget extends BlockCodeWidget {
 
         int height = getHeight();
         graphics.blitSprite(CodeWidgetSprites.SIMPLE_BLOCK, renderX, renderY, 6 + getWidth(font), 3 + height);
-        RenderHelper.renderVisualText(graphics, font, renderX + 4, renderY + 7, signature, args);
+        TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 7, signature, args);
     }
 
     @Override
     public int getWidth(Font font) {
-        return RenderHelper.getVisualTextWidth(font, this.signature, this.args) + 12;
+        return TextRenderHelper.getVisualTextWidth(font, this.signature, this.args) + 12;
     }
 
     @Override

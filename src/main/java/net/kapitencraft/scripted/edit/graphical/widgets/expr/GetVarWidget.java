@@ -3,7 +3,7 @@ package net.kapitencraft.scripted.edit.graphical.widgets.expr;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.ExprCategory;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.connector.Connector;
@@ -45,7 +45,7 @@ public class GetVarWidget implements ExprCodeWidget {
     @Override
     public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
         graphics.blitSprite(this.exprCategory.getSpriteLocation(), renderX, renderY, getWidth(font), getHeight());
-        RenderHelper.renderVisualText(graphics, font, renderX + 4, renderY + 5, "§get", Map.of("var", this.nameSelector));
+        TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 5, "§get", Map.of("var", this.nameSelector));
     }
 
     @Override
@@ -59,7 +59,7 @@ public class GetVarWidget implements ExprCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
+    public CodeWidget getByName(String arg) {
         throw new IllegalAccessError("can not get from get var widget");
     }
 
@@ -70,7 +70,7 @@ public class GetVarWidget implements ExprCodeWidget {
 
     @Override
     public int getWidth(Font font) {
-        return 6 + RenderHelper.getVisualTextWidth(font, "§get", Map.of("var", this.nameSelector));
+        return 6 + TextRenderHelper.getVisualTextWidth(font, "§get", Map.of("var", this.nameSelector));
     }
 
     @Override

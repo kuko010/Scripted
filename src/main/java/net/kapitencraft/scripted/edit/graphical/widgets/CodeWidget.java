@@ -25,7 +25,7 @@ public interface CodeWidget {
 
     void insertByName(@NotNull String arg, @NotNull ExprCodeWidget obj);
 
-    CodeWidget getByName(String argName);
+    CodeWidget getByName(String arg);
 
     @Nullable WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font);
 

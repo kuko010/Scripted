@@ -377,7 +377,8 @@ public class GraphicalEditor extends AbstractWidget {
                                     return; //return early before connector & element are put
                             }
                             this.connector = connector;
-                            this.ghostTargetElement.update();
+                            if (this.ghostTargetElement != null)
+                                this.ghostTargetElement.update();
                             this.ghostTargetElement = element;
                             element.update();
                             return;
@@ -392,6 +393,7 @@ public class GraphicalEditor extends AbstractWidget {
                     this.connector.insert(this.ghostExprOriginal);
                     this.ghostExprOriginal = null;
                 }
+                this.ghostTargetElement.update();
                 this.connector = null;
                 this.ghostTargetElement = null;
             }
@@ -487,15 +489,16 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         public void update() {
-            this.updateInteractions();
             this.connectors.clear();
             this.widget().collectConnectors(0, 0, font, this.connectors::add);
             this.widget.update(null, font);
             this.width = calculateWidgetWidth();
             this.height = calculateWidgetHeight();
+            this.updateInteractions();
         }
 
         protected void updateInteractions() {
+            this.interactions.clear();
             this.widget.registerInteractions(this.x, this.y, font, this.interactions::add);
         }
 
@@ -511,6 +514,9 @@ public class GraphicalEditor extends AbstractWidget {
                     connector.renderDebug(pGuiGraphics);
                 }
                 pose.popPose();
+                for (CodeInteraction interaction : this.interactions) {
+                    interaction.renderDebug(pGuiGraphics);
+                }
             }
         }
 
@@ -644,7 +650,7 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public CodeWidget getByName(String argName) {
+        public CodeWidget getByName(String arg) {
             throw new IllegalAccessError("can not get from ghost");
         }
 
@@ -703,7 +709,7 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public CodeWidget getByName(String argName) {
+        public CodeWidget getByName(String arg) {
             throw new IllegalAccessError("can not get from ghost");
         }
     }

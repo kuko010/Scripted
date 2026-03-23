@@ -2,9 +2,10 @@ package net.kapitencraft.scripted.edit.graphical.selection;
 
 import net.kapitencraft.scripted.Scripted;
 import net.kapitencraft.scripted.edit.graphical.ExprCategory;
+import net.kapitencraft.scripted.edit.graphical.widgets.block.AssignVarWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.block.ForRangeStmtWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.block.IfStmtWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.VarModWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.WhileLoopWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.block.WhileStmtWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.BlockSelectWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.GetVarWidget;
@@ -45,12 +46,18 @@ public interface SelectionTabs {
                         .hideElse()
                 ).withEntry(IfStmtWidget.builder())
                 .withEntry(IfStmtWidget.builder().withElseIfNoCondition())
-                .withEntry(WhileLoopWidget.builder())
+                .withEntry(WhileStmtWidget.builder())
+                .withEntry(ForRangeStmtWidget.builder())
                 .build()
         );
         context.register(VARIABLES, SelectionTab.builder()
-                .withEntry(VarModWidget.builder().setExpr(ParamWidget.OBJ))
+                        .withEntry(AssignVarWidget.builder().doesCreateVar())
+                .withEntry(AssignVarWidget.builder().setExpr(ParamWidget.OBJ))
                 .withEntry(new GetVarWidget(null))
-                .build());
+                .build()
+        );
+        context.register(OPERATORS, SelectionTab.builder()
+                .build()
+        );
     }
 }

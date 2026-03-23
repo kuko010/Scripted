@@ -3,7 +3,7 @@ package net.kapitencraft.scripted.edit.graphical.widgets.block;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
@@ -62,7 +62,7 @@ public class HeadWidget extends BlockCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
+    public CodeWidget getByName(String arg) {
         return null;
     }
 
@@ -81,13 +81,13 @@ public class HeadWidget extends BlockCodeWidget {
     @Override
     public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
         graphics.blitSprite(CodeWidgetSprites.METHOD_HEAD, renderX, renderY, getWidth(font), 3 + getHeight());
-        RenderHelper.renderVisualText(graphics, font, renderX + 4, renderY + 15, this.translationKey, this.args);
+        TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 15, this.translationKey, this.args);
         super.render(graphics, font, renderX, renderY);
     }
 
     @Override
     public int getWidth(Font font) {
-        return 6 + RenderHelper.getVisualTextWidth(font, this.translationKey, this.args);
+        return 6 + TextRenderHelper.getVisualTextWidth(font, this.translationKey, this.args);
     }
 
     @Override

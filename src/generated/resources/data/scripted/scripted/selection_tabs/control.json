@@ -2,7 +2,7 @@
   {
     "type": "stmt",
     "entry": {
-      "type": "if",
+      "type": "if_stmt",
       "elifs": [],
       "show_else": false
     }
@@ -10,14 +10,14 @@
   {
     "type": "stmt",
     "entry": {
-      "type": "if",
+      "type": "if_stmt",
       "elifs": []
     }
   },
   {
     "type": "stmt",
     "entry": {
-      "type": "if",
+      "type": "if_stmt",
       "elifs": [
         {}
       ]
@@ -27,6 +27,12 @@
     "type": "stmt",
     "entry": {
       "type": "while_loop"
+    }
+  },
+  {
+    "type": "stmt",
+    "entry": {
+      "type": "for_range_stmt"
     }
   }
 ]

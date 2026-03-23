@@ -24,6 +24,7 @@
   "selection_tab.scripted.world": "World",
 
   "§assign": "set {var} to {value}",
+  "§initialize": "initialize {var} to {value}",
   "§get": "get variable {var}",
   "§if": "if {condition} do",
   "§while": "while {condition} do",

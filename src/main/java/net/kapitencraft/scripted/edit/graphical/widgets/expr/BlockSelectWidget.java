@@ -84,7 +84,7 @@ public class BlockSelectWidget implements ExprCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
+    public CodeWidget getByName(String arg) {
         throw new IllegalAccessError("can not get from block select widget");
     }
 

@@ -38,7 +38,7 @@ public class ParamWidget implements ExprCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
+    public CodeWidget getByName(String arg) {
         throw new IllegalAccessError("can not get from param widget");
     }
 

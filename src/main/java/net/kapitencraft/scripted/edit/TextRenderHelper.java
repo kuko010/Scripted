@@ -13,11 +13,12 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public interface RenderHelper {
+public interface TextRenderHelper {
 
     Pattern VAR_TEXT_REGEX = Pattern.compile("\\{([a-zA-Z0-9_]+)}"); //oooh pattern :pog:
 
     static void renderVisualText(GuiGraphics graphics, Font font, int x, int y, String key, Map<String, ExprCodeWidget> entries) {
+        x += 4;
         String inst = Language.getInstance().getOrDefault(key);
         Matcher matcher = VAR_TEXT_REGEX.matcher(inst);
         int j, l;
@@ -105,7 +106,7 @@ public interface RenderHelper {
             width += font.width(subElement);
             String name = matcher.group(1);
             ExprCodeWidget widget = args.get(name);
-            widget.registerInteractions(xOrigin + width, yOrigin, font, sink);
+            widget.registerInteractions(xOrigin + width, yOrigin - (widget.getHeight() - 8) / 2, font, sink);
             width += widget.getWidth(font);
         }
     }

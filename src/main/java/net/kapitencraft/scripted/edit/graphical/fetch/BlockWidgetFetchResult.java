@@ -1,6 +1,6 @@
 package net.kapitencraft.scripted.edit.graphical.fetch;
 
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.widgets.ArgumentStorage;
 import net.kapitencraft.scripted.edit.graphical.widgets.block.BlockCodeWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
@@ -24,7 +24,7 @@ public record BlockWidgetFetchResult(boolean removed, int x, int y,
         if (x < minWidth) return BlockWidgetFetchResult.notRemoved(self, x, y);
         x -= minWidth;
         String inst = Language.getInstance().getOrDefault(translation);
-        Matcher matcher = RenderHelper.VAR_TEXT_REGEX.matcher(inst);
+        Matcher matcher = TextRenderHelper.VAR_TEXT_REGEX.matcher(inst);
         int j, l;
         for (j = 0; matcher.find(j); j = l) {
             int k = matcher.start();

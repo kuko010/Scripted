@@ -60,13 +60,14 @@ public abstract class BlockCodeWidget implements CodeWidget {
 
     //TODO convert back to code representation before saving
     //lambda necessary to ensure load order doesn't create cycle
+    @Deprecated //convert to AST instead
     protected enum Type implements StringRepresentable {
         HEAD(() -> HeadWidget.CODEC),
-        WHILE_LOOP(() -> WhileLoopWidget.CODEC),
+        WHILE_LOOP(() -> WhileStmtWidget.CODEC),
         IF_STMT(() -> IfStmtWidget.CODEC),
-        BODY(() -> VarModWidget.CODEC),
+        BODY(() -> AssignVarWidget.CODEC),
         METHOD_STMT(() -> MethodStmtWidget.CODEC),
-        TRY_STMT(() -> TryStmtWidget.CODEC);
+        FOR_RANGE_STMT(() -> ForRangeStmtWidget.CODEC);
 
         public static final EnumCodec<Type> CODEC = StringRepresentable.fromEnum(Type::values);
 
@@ -101,18 +102,21 @@ public abstract class BlockCodeWidget implements CodeWidget {
     public abstract BlockCodeWidget copy();
 
     public WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
-        WidgetFetchResult result = this.child.fetchAndRemoveHovered(x, y, font);
-        if (result == null) return null;
-        if (!result.removed()) {
-            BlockCodeWidget target = null;
-            if (Screen.hasControlDown()) {
-                BlockCodeWidget bcW = (BlockCodeWidget) result.widget();
-                target = bcW.child;
-                bcW.setChild(null);
+        if (this.child != null) {
+            WidgetFetchResult result = this.child.fetchAndRemoveHovered(x, y, font);
+            if (result == null) return null;
+            if (!result.removed()) {
+                BlockCodeWidget target = null;
+                if (Screen.hasControlDown()) {
+                    BlockCodeWidget bcW = (BlockCodeWidget) result.widget();
+                    target = bcW.child;
+                    bcW.setChild(null);
+                }
+                this.setChild(target);
             }
-            this.setChild(target);
+            return result.setRemoved();
         }
-        return result.setRemoved();
+        return null;
     }
 
     public int getHeightWithChildren() {

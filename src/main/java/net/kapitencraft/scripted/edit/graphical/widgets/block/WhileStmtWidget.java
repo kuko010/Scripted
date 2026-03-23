@@ -3,7 +3,7 @@ package net.kapitencraft.scripted.edit.graphical.widgets.block;
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.connector.CommonBranchBlockConnector;
@@ -25,32 +25,32 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class WhileLoopWidget extends BlockCodeWidget {
-    public static final MapCodec<WhileLoopWidget> CODEC = RecordCodecBuilder.mapCodec(i ->
+public class WhileStmtWidget extends BlockCodeWidget {
+    public static final MapCodec<WhileStmtWidget> CODEC = RecordCodecBuilder.mapCodec(i ->
             BlockCodeWidget.commonFields(i).and(
                     ExprCodeWidget.CODEC.optionalFieldOf("condition", ParamWidget.CONDITION).forGetter(w -> w.condition)
             ).and(
                     BlockCodeWidget.CODEC.optionalFieldOf("body").forGetter(w -> Optional.ofNullable(w.body))
-            ).apply(i, WhileLoopWidget::new)
+            ).apply(i, WhileStmtWidget::new)
     );
 
     @NotNull
     private ExprCodeWidget condition;
     private @Nullable BlockCodeWidget body;
 
-    public WhileLoopWidget(@NotNull ExprCodeWidget condition, @Nullable BlockCodeWidget body) {
+    public WhileStmtWidget(@NotNull ExprCodeWidget condition, @Nullable BlockCodeWidget body) {
         this.condition = condition;
         this.body = body;
     }
 
-    private WhileLoopWidget(BlockCodeWidget child, @NotNull ExprCodeWidget condition, @Nullable BlockCodeWidget body) {
+    private WhileStmtWidget(BlockCodeWidget child, @NotNull ExprCodeWidget condition, @Nullable BlockCodeWidget body) {
         Preconditions.checkNotNull(condition);
         this.condition = condition;
         this.body = body;
         this.setChild(child);
     }
 
-    public WhileLoopWidget(Optional<BlockCodeWidget> blockWidget, @NotNull ExprCodeWidget condition, Optional<BlockCodeWidget> body) {
+    public WhileStmtWidget(Optional<BlockCodeWidget> blockWidget, @NotNull ExprCodeWidget condition, Optional<BlockCodeWidget> body) {
         blockWidget.ifPresent(this::setChild);
         Preconditions.checkNotNull(condition);
         this.condition = condition;
@@ -59,7 +59,7 @@ public class WhileLoopWidget extends BlockCodeWidget {
 
     @Override
     public BlockCodeWidget copy() {
-        return new WhileLoopWidget(
+        return new WhileStmtWidget(
                 this.getChildCopy(),
                 this.condition.copy(),
                 this.body != null ? this.body.copy() : null
@@ -74,11 +74,11 @@ public class WhileLoopWidget extends BlockCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
-        if ("condition".equals(argName)) {
+    public CodeWidget getByName(String arg) {
+        if ("condition".equals(arg)) {
             return this.condition;
         }
-        throw new IllegalArgumentException("unknown argument " + argName + " in While");
+        throw new IllegalArgumentException("unknown argument " + arg + " in While");
     }
 
     @Override
@@ -89,7 +89,7 @@ public class WhileLoopWidget extends BlockCodeWidget {
     @Override
     public void collectConnectors(int aX, int aY, Font font, Consumer<Connector> collector) {
         collector.accept(new SingletonExprConnector(
-                aX + 6 + RenderHelper.getPartialWidth(font, "§while", Map.of(), "condition"),
+                aX + 6 + TextRenderHelper.getPartialWidth(font, "§while", Map.of(), "condition"),
                 aY,
                 this::setCondition,
                 () -> this.condition
@@ -109,8 +109,8 @@ public class WhileLoopWidget extends BlockCodeWidget {
     public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
         int loopWidth = getHeadWidth(font);
         int headHeight = getHeadHeight();
-        graphics.blitSprite(CodeWidgetSprites.LOOP_HEAD, renderX, renderY, loopWidth, headHeight + 3);
-        RenderHelper.renderVisualText(graphics, font, renderX + 4, renderY + 7 + (headHeight - 18) / 2, "§while", Map.of("condition", this.condition));
+        graphics.blitSprite(CodeWidgetSprites.SCOPE_HEAD, renderX, renderY, loopWidth, headHeight + 3);
+        TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 7 + (headHeight - 18) / 2, "§while", Map.of("condition", this.condition));
         int bodyHeight = getBranchHeight();
         if (this.body != null)
             this.body.render(graphics, font, renderX + 6, renderY + headHeight);
@@ -128,7 +128,7 @@ public class WhileLoopWidget extends BlockCodeWidget {
     }
 
     private int getHeadWidth(Font font) {
-        return 4 + RenderHelper.getVisualTextWidth(font, "§while", Map.of("condition", this.condition));
+        return 4 + TextRenderHelper.getVisualTextWidth(font, "§while", Map.of("condition", this.condition));
     }
 
     @Override
@@ -187,7 +187,7 @@ public class WhileLoopWidget extends BlockCodeWidget {
         this.condition = target == null ? ParamWidget.CONDITION : target;
     }
 
-    public static class Builder implements BlockCodeWidget.Builder<WhileLoopWidget> {
+    public static class Builder implements BlockCodeWidget.Builder<WhileStmtWidget> {
         private BlockCodeWidget child;
         private ExprCodeWidget condition = ParamWidget.CONDITION;
         private BlockCodeWidget body;
@@ -213,8 +213,8 @@ public class WhileLoopWidget extends BlockCodeWidget {
         }
 
         @Override
-        public WhileLoopWidget build() {
-            return new WhileLoopWidget(child, condition, body);
+        public WhileStmtWidget build() {
+            return new WhileStmtWidget(child, condition, body);
         }
     }
 

@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
 import net.kapitencraft.scripted.lang.holder.ast.Expr;
+import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;
+import net.kapitencraft.scripted.lang.holder.token.Token;
 import net.kapitencraft.scripted.lang.oop.clazz.ScriptedClass;
 import net.minecraft.util.GsonHelper;
 
@@ -212,12 +214,12 @@ public class Annotation {
     }
 
     public static EntryValue fromExpr(Expr expr) {
-        if (expr instanceof Expr.Literal literal) {
-            Object object = literal.literal().literal().value();
+        if (expr instanceof Expr.Literal(Token literal)) {
+            Object object = literal.literal().value();
             if (object instanceof String s) return new StringValue(s);
             else return new NumberValue((Number) object);
-        } else if (expr instanceof Expr.StaticGet get) {
-            return new EnumValue(VarTypeManager.getClassName(get.target()), get.name().lexeme());
+        } else if (expr instanceof Expr.StaticGet(ClassReference target, Token name)) {
+            return new EnumValue(VarTypeManager.getClassName(target), name.lexeme());
         } else if (expr instanceof Expr.ArrayConstructor constructor) {
             if (constructor.size() != null) return new ArrayValue(new EntryValue[0]);
             return new ArrayValue(Arrays.stream(constructor.obj()).map(Annotation::fromExpr).toArray(EntryValue[]::new));

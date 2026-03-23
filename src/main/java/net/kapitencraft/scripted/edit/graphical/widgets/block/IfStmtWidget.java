@@ -4,7 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.kapitencraft.kap_lib.core.client.widget.PositionedWidget;
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.connector.CommonBranchBlockConnector;
@@ -55,6 +55,7 @@ public class IfStmtWidget extends BlockCodeWidget {
     private int globalHeadWidth;
     private int headWidth;
     private int elseHeadWidth;
+    private int headHeight;
 
     public IfStmtWidget(ExprCodeWidget condition) {
         this.condition = condition;
@@ -96,6 +97,7 @@ public class IfStmtWidget extends BlockCodeWidget {
         widget.globalHeadWidth = this.globalHeadWidth;
         widget.headWidth = this.headWidth;
         widget.elseHeadWidth = this.elseHeadWidth;
+        widget.headHeight = this.headHeight;
         return widget;
     }
 
@@ -116,15 +118,15 @@ public class IfStmtWidget extends BlockCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
-        if ("condition".equals(argName)) {
+    public CodeWidget getByName(String arg) {
+        if ("condition".equals(arg)) {
             return this.condition;
         }
-        if (argName.startsWith("elif-condition")) {
-            int idx = Integer.parseInt(argName.substring(14));
+        if (arg.startsWith("elif-condition")) {
+            int idx = Integer.parseInt(arg.substring(14));
             return this.elseIfs.get(idx).condition;
         }
-        throw new IllegalArgumentException("unknown argument named " + argName + " in If");
+        throw new IllegalArgumentException("unknown argument named " + arg + " in If");
     }
 
     public static Builder builder() {
@@ -136,62 +138,7 @@ public class IfStmtWidget extends BlockCodeWidget {
         return Type.IF_STMT;
     }
 
-    @Override
-    public void collectConnectors(int aX, int aY, Font font, Consumer<Connector> collector) {
-        int conditionOffset = aX + 4 + RenderHelper.getPartialWidth(font, "§if", Map.of(), "condition");
-        collector.accept(new SingletonExprConnector(
-                conditionOffset,
-                aY,
-                this::setCondition,
-                () -> this.condition
-        ));
-        this.condition.collectConnectors(conditionOffset, aY, font, collector);
-
-        int headHeight = this.getHeadHeight();
-        collector.accept(new CommonBranchBlockConnector(
-                aX + 6,
-                aY + headHeight,
-                this::setBody,
-                () -> this.conditionBody,
-                font,
-                collector
-        ));
-        int yOffset = headHeight + this.getBodyHeight();
-        int cOffset = RenderHelper.getPartialWidth(font, "§else_if", Map.of(), "condition");
-        for (ElseIfEntry elseIf : this.elseIfs) {
-            collector.accept(new SingletonExprConnector(
-                    aX + 4 + cOffset,
-                    aY + yOffset,
-                    elseIf::setCondition,
-                    elseIf::condition
-            ));
-            elseIf.condition.collectConnectors(aX + 4, aY + yOffset, font, collector);
-            yOffset += getElseIfHeadHeight(elseIf);
-            collector.accept(new CommonBranchBlockConnector(
-                    aX + 6,
-                    aY + yOffset,
-                    elseIf::setBody,
-                    elseIf::body,
-                    font,
-                    collector
-            ));
-            yOffset += getElseifBodyHeight(elseIf);
-        }
-        if (this.elseVisible) {
-            collector.accept(new CommonBranchBlockConnector(
-                    aX + 6,
-                    aY + yOffset + this.getElseHeadHeight(),
-                    this::setElseBody,
-                    () -> this.elseBody,
-                    font,
-                    collector
-            ));
-        }
-        super.collectConnectors(aX, aY, font, collector);
-    }
-
     //region size
-    //TODO store sizes, this is getting ridiculous
     @Override
     public int getWidth(Font font) {
         return this.globalWidth;
@@ -236,15 +183,15 @@ public class IfStmtWidget extends BlockCodeWidget {
     }
 
     private int getHeadWidth(Font font) {
-        return 4 + RenderHelper.getVisualTextWidth(font, "§if", Map.of("condition", condition));
+        return 4 + TextRenderHelper.getVisualTextWidth(font, "§if", Map.of("condition", condition));
     }
 
     private int getElseHeadWidth(Font font) {
-        return 4 + RenderHelper.getVisualTextWidth(font, "§else", Map.of());
+        return 4 + TextRenderHelper.getVisualTextWidth(font, "§else", Map.of());
     }
 
     private int getElseIfHeadWidth(Font font, ElseIfEntry entry) {
-        return 4 + RenderHelper.getVisualTextWidth(font, "§else_if", Map.of("condition", entry.condition));
+        return 4 + TextRenderHelper.getVisualTextWidth(font, "§else_if", Map.of("condition", entry.condition));
     }
 
     @Override
@@ -272,7 +219,7 @@ public class IfStmtWidget extends BlockCodeWidget {
     }
 
     private int getHeadHeight() {
-        return Math.max(18, this.condition.getHeight() + 4) + 2;
+        return headHeight;
     }
 
     private int getElseHeadHeight() {
@@ -290,8 +237,8 @@ public class IfStmtWidget extends BlockCodeWidget {
         int globalHeadWidth = this.globalHeadWidth;
         int headHeight = getHeadHeight();
         //head
-        graphics.blitSprite(CodeWidgetSprites.LOOP_HEAD, renderX, renderY, globalHeadWidth, headHeight + 3);
-        RenderHelper.renderVisualText(graphics, font, renderX + 4, renderY + 7 + (headHeight - 20) / 2, "§if", Map.of("condition", condition));
+        graphics.blitSprite(CodeWidgetSprites.SCOPE_HEAD, renderX, renderY, globalHeadWidth, headHeight + 3);
+        TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 7 + (headHeight - 20) / 2, "§if", Map.of("condition", condition));
 
         //body
         int bodyHeight = getBodyHeight();
@@ -304,7 +251,7 @@ public class IfStmtWidget extends BlockCodeWidget {
             int elseIfHeadHeight = getElseIfHeadHeight(elseIf);
             graphics.blitSprite(CodeWidgetSprites.ELSE_CONDITION_HEAD, renderX, endY, globalHeadWidth, elseIfHeadHeight + 3);
             int elseIfBodyHeight = getElseifBodyHeight(elseIf);
-            RenderHelper.renderVisualText(graphics, font, renderX + 4, endY + 7, "§else_if", Map.of("condition", elseIf.condition));
+            TextRenderHelper.renderVisualText(graphics, font, renderX, endY + 7, "§else_if", Map.of("condition", elseIf.condition));
             if (elseIf.body != null) {
                 elseIf.body.render(graphics, font, renderX + 6, endY + elseIfHeadHeight);
             }
@@ -317,7 +264,7 @@ public class IfStmtWidget extends BlockCodeWidget {
             int elseHeadHeight = getElseHeadHeight();
             graphics.blitSprite(CodeWidgetSprites.ELSE_CONDITION_HEAD, renderX, endY, globalHeadWidth, elseHeadHeight + 3);
             int elseBodyHeight = getElseBodyHeight();
-            RenderHelper.renderVisualText(graphics, font, renderX + 4, endY + 7, "§else", Map.of());
+            TextRenderHelper.renderVisualText(graphics, font, renderX, endY + 7, "§else", Map.of());
             if (this.elseBody != null) {
                 this.elseBody.render(graphics, font, renderX + 6, endY + elseHeadHeight);
             }
@@ -332,6 +279,61 @@ public class IfStmtWidget extends BlockCodeWidget {
     private void renderScopeEnd(GuiGraphics graphics, int renderX, int renderY, int width) {
         graphics.blitSprite(CodeWidgetSprites.SCOPE_END, renderX, renderY, width, 16);
         graphics.blitSprite(CodeWidgetSprites.MODIFY_IF, renderX + width - 9, renderY + 4, 7, 7);
+    }
+
+    //region interaction
+    @Override
+    public void collectConnectors(int aX, int aY, Font font, Consumer<Connector> collector) {
+        int conditionOffset = aX + 4 + TextRenderHelper.getPartialWidth(font, "§if", Map.of(), "condition");
+        collector.accept(new SingletonExprConnector(
+                conditionOffset,
+                aY,
+                this::setCondition,
+                () -> this.condition
+        ));
+        this.condition.collectConnectors(conditionOffset, aY, font, collector);
+
+        int headHeight = this.getHeadHeight();
+        collector.accept(new CommonBranchBlockConnector(
+                aX + 6,
+                aY + headHeight,
+                this::setBody,
+                () -> this.conditionBody,
+                font,
+                collector
+        ));
+        int yOffset = headHeight + this.getBodyHeight();
+        int cOffset = TextRenderHelper.getPartialWidth(font, "§else_if", Map.of(), "condition");
+        for (ElseIfEntry elseIf : this.elseIfs) {
+            collector.accept(new SingletonExprConnector(
+                    aX + 4 + cOffset,
+                    aY + yOffset,
+                    elseIf::setCondition,
+                    elseIf::condition
+            ));
+            elseIf.condition.collectConnectors(aX + 4, aY + yOffset, font, collector);
+            yOffset += getElseIfHeadHeight(elseIf);
+            collector.accept(new CommonBranchBlockConnector(
+                    aX + 6,
+                    aY + yOffset,
+                    elseIf::setBody,
+                    elseIf::body,
+                    font,
+                    collector
+            ));
+            yOffset += getElseifBodyHeight(elseIf);
+        }
+        if (this.elseVisible) {
+            collector.accept(new CommonBranchBlockConnector(
+                    aX + 6,
+                    aY + yOffset + this.getElseHeadHeight(),
+                    this::setElseBody,
+                    () -> this.elseBody,
+                    font,
+                    collector
+            ));
+        }
+        super.collectConnectors(aX, aY, font, collector);
     }
 
     @Override
@@ -354,6 +356,28 @@ public class IfStmtWidget extends BlockCodeWidget {
             }
             return null;
         }
+
+        int yOffset = this.getHeadHeight() + this.getBodyHeight();
+        for (ElseIfEntry elseIf : this.elseIfs) {
+            if (y - yOffset < this.getElseIfHeadHeight(elseIf)) {
+                if (x < elseIf.headWidth)
+                    return BlockWidgetFetchResult.fromExprList(4, x, y, font, this, "§else_if", ArgumentStorage.createSingle("condition", this::setCondition, () -> elseIf.condition));
+            }
+            if (y - yOffset - this.getElseIfHeadHeight(elseIf) < elseIf.getBodyHeight()) {
+                if (x < 6)
+                    return BlockWidgetFetchResult.notRemoved(this, x, y);
+                if (elseIf.body != null) {
+                    WidgetFetchResult result = elseIf.body.fetchAndRemoveHovered(x - 6,
+                            y - this.getHeadHeight() - this.getBodyHeight() - this.getElseHeadHeight(), font);
+                    if (result == null) return null;
+                    if (!result.removed())
+                        elseIf.body = null;
+                    return result.setRemoved();
+                }
+                return null;
+            }
+        }
+
         if (elseVisible) {
             if (y - this.getHeadHeight() - this.getBodyHeight() < this.getElseHeadHeight()) {
                 if (x < this.getElseHeadWidth(font))
@@ -374,12 +398,12 @@ public class IfStmtWidget extends BlockCodeWidget {
                 return null;
             }
         }
+
         if (y > this.getHeight())
             return super.fetchAndRemoveHovered(x, y - getHeight(), font);
         return null;
     }
 
-    //region interaction
     @Override
     public void registerInteractions(int xOrigin, int yOrigin, Font font, Consumer<CodeInteraction> sink) {
         //TODO
@@ -388,13 +412,25 @@ public class IfStmtWidget extends BlockCodeWidget {
             this.conditionBody.registerInteractions(xOrigin + 6, yOrigin + getHeadHeight(), font, sink);
         }
         int h = getHeadHeight() + getBodyHeight();
+        int xOffsetElseIfCondition = TextRenderHelper.getPartialWidth(font, "§else_if", Map.of(), "condition");
+        for (ElseIfEntry elseIf : this.elseIfs) {
+            elseIf.condition.registerInteractions(xOrigin + xOffsetElseIfCondition, yOrigin + h, font, sink);
+
+            h += getElseIfHeadHeight(elseIf);
+            if (elseIf.body != null) {
+                elseIf.body.registerInteractions(xOrigin + 6, yOrigin + h, font, sink);
+            }
+            h += elseIf.getBodyHeight();
+        }
+
         if (elseVisible) {
             if (this.elseBody != null) {
                 this.elseBody.registerInteractions(xOrigin + 6, yOrigin + h + getElseHeadHeight(), font, sink);
             }
             h += getElseHeadHeight() + getElseBodyHeight();
         }
-        sink.accept(new ModifyWidgetBranchesInteraction(xOrigin + getHeadWidth(font) - 9, yOrigin + h, 7, 7));
+        sink.accept(new ModifyWidgetBranchesInteraction(xOrigin + getGlobalHeadWidth() - 9, yOrigin + h + 4, 7, 7));
+        super.registerInteractions(xOrigin, yOrigin, font, sink);
     }
 
     private class ModifyBranchesWidget extends PositionedWidget {
@@ -491,6 +527,7 @@ public class IfStmtWidget extends BlockCodeWidget {
         this.headWidth = this.getHeadWidth(font);
         this.elseHeadWidth = this.getElseHeadWidth(font);
         this.globalHeadWidth = this.getGlobalHeadWidth();
+        this.headHeight = Math.max(18, this.condition.getHeight() + 4) + 2;
         super.update(context, font);
     }
 
@@ -534,6 +571,10 @@ public class IfStmtWidget extends BlockCodeWidget {
 
         public ElseIfEntry copy() {
             return new ElseIfEntry(this.condition, this.body);
+        }
+
+        private int getBodyHeight() {
+            return body == null ? 10 : this.body.getHeight();
         }
     }
 

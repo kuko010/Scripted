@@ -3,9 +3,8 @@ package net.kapitencraft.scripted.edit.graphical.widgets.block;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
-import net.kapitencraft.scripted.edit.graphical.ExprCategory;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
 import net.kapitencraft.scripted.edit.graphical.fetch.WidgetFetchResult;
@@ -24,36 +23,41 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class VarModWidget extends BlockCodeWidget {
-    public static final MapCodec<VarModWidget> CODEC = RecordCodecBuilder.mapCodec(i ->
+public class AssignVarWidget extends BlockCodeWidget {
+    public static final MapCodec<AssignVarWidget> CODEC = RecordCodecBuilder.mapCodec(i ->
             commonFields(i).and(
                     Codec.STRING.optionalFieldOf("name").forGetter(w -> Optional.ofNullable(w.varNameSelectorWidget.getSelected()))
             ).and(
                     ExprCodeWidget.CODEC.fieldOf("expr").forGetter(w -> w.expr)
-            ).apply(i, VarModWidget::new)
+            ).and(
+                    Codec.BOOL.optionalFieldOf("create", false).forGetter(AssignVarWidget::createsVar)
+            ).apply(i, AssignVarWidget::new)
     );
 
     private ExprCodeWidget expr;
     private final VarNameSelectorWidget varNameSelectorWidget = new VarNameSelectorWidget();
 
-    private VarModWidget(BlockCodeWidget child, String varName, ExprCodeWidget expr) {
+    private AssignVarWidget(BlockCodeWidget child, String varName, ExprCodeWidget expr, boolean createsVar) {
         this.expr = expr;
         this.setChild(child);
         this.varNameSelectorWidget.setSelected(varName);
+        this.varNameSelectorWidget.setCreate(createsVar);
     }
 
-    public VarModWidget(Optional<BlockCodeWidget> child, Optional<String> varName, ExprCodeWidget expr) {
+    public AssignVarWidget(Optional<BlockCodeWidget> child, Optional<String> varName, ExprCodeWidget expr, boolean createVar) {
         this.expr = expr;
         child.ifPresent(this::setChild);
         varName.ifPresent(this.varNameSelectorWidget::setSelected);
+        this.varNameSelectorWidget.setCreate(createVar);
     }
 
     @Override
     public BlockCodeWidget copy() {
-        return new VarModWidget(
+        return new AssignVarWidget(
                 getChildCopy(),
                 this.varNameSelectorWidget.getVisualSelected(),
-                this.expr.copy()
+                this.expr.copy(),
+                this.varNameSelectorWidget.doesCreateVar()
         );
     }
 
@@ -66,11 +70,11 @@ public class VarModWidget extends BlockCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
-        if ("value".equals(argName)) {
+    public CodeWidget getByName(String arg) {
+        if ("value".equals(arg)) {
             return this.expr;
         }
-        throw new IllegalArgumentException("unknown argument in VarModWidget: " + argName);
+        throw new IllegalArgumentException("unknown argument in VarModWidget: " + arg);
     }
 
     @Override
@@ -82,35 +86,56 @@ public class VarModWidget extends BlockCodeWidget {
     public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
         int height = getHeight();
         graphics.blitSprite(CodeWidgetSprites.SIMPLE_BLOCK, renderX, renderY, getWidth(font), 3 + height);
-        RenderHelper.renderVisualText(graphics, font, renderX + 4, renderY + 6, "§assign", Map.of("var", varNameSelectorWidget, "value", expr));
+        TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 7 + (getHeight() - 20) / 2, getTranslationKey(), Map.of("var", varNameSelectorWidget, "value", expr));
         super.render(graphics, font, renderX, renderY);
     }
 
     @Override
     public int getWidth(Font font) {
-        return 6 + RenderHelper.getVisualTextWidth(font, "§assign", Map.of("var", varNameSelectorWidget, "value", expr));
+        return 6 + TextRenderHelper.getVisualTextWidth(font, getTranslationKey(), Map.of("var", varNameSelectorWidget, "value", expr));
     }
 
     @Override
     public int getHeight() {
-        return Math.max(18, this.expr.getHeight() + 4);
+        return Math.max(18, this.expr.getHeight() + 4) + 2;
     }
 
     public static Builder builder() {
         return new Builder();
     }
 
+    private boolean createsVar() {
+        return this.varNameSelectorWidget.doesCreateVar();
+    }
+
+    private String getTranslationKey() {
+        return createsVar() ? "§initialize" : "§assign";
+    }
+
     @Override
     public WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
         if (y > this.getHeight()) return super.fetchAndRemoveHovered(x, y - this.getHeight(), font);
-        if (x < this.getWidth(font)) return BlockWidgetFetchResult.fromExprList(4, x, y, font, this, "§assign", ArgumentStorage.createSingle("value", this::setExpr, () -> this.expr));
+        if (x < this.getWidth(font))
+            return BlockWidgetFetchResult.fromExprList(4, x, y, font, this, getTranslationKey(),
+                    ArgumentStorage.createDouble(
+                            "var", null, () -> this.varNameSelectorWidget,
+                            "value", this::setExpr, () -> this.expr
+                    )
+            );
         return null;
     }
 
     @Override
     public void registerInteractions(int xOrigin, int yOrigin, Font font, Consumer<CodeInteraction> sink) {
         this.expr.registerInteractions(xOrigin, yOrigin, font, sink);
+        this.varNameSelectorWidget.registerInteractions(
+                xOrigin + 4 + TextRenderHelper.getPartialWidth(font, getTranslationKey(), Map.of(), "var"),
+                yOrigin + 4 + (getHeight() - 20) / 2,
+                font,
+                sink
+        );
         //sink.accept();
+        super.registerInteractions(xOrigin, yOrigin, font, sink);
     }
 
     public void setExpr(ExprCodeWidget widget) {
@@ -121,18 +146,22 @@ public class VarModWidget extends BlockCodeWidget {
     @Override
     public void update(@Nullable MethodContext context, Font font) {
         this.varNameSelectorWidget.update(context, font);
+        if (this.expr instanceof ParamWidget) {
+            this.expr = new ParamWidget(this.varNameSelectorWidget.getCategory());
+        }
         this.expr.update(context, font);
         super.update(context, font);
     }
 
-    public static class Builder implements BlockCodeWidget.Builder<VarModWidget> {
+    public static class Builder implements BlockCodeWidget.Builder<AssignVarWidget> {
         private BlockCodeWidget child;
         private String varName;
-        private ExprCodeWidget expr = new ParamWidget(ExprCategory.NUMBER);
+        private ExprCodeWidget expr = ParamWidget.NUM;
+        private boolean createVar = false;
 
         @Override
-        public VarModWidget build() {
-            return new VarModWidget(child, varName, expr);
+        public AssignVarWidget build() {
+            return new AssignVarWidget(child, varName, expr, createVar);
         }
 
         public Builder setExpr(ExprCodeWidget value) {
@@ -146,6 +175,11 @@ public class VarModWidget extends BlockCodeWidget {
 
         public Builder setChild(BlockCodeWidget.Builder<?> builder) {
             this.child = builder.build();
+            return this;
+        }
+
+        public Builder doesCreateVar() {
+            this.createVar = true;
             return this;
         }
 

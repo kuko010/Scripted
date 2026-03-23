@@ -2,7 +2,7 @@ package net.kapitencraft.scripted.edit.graphical.widgets.expr;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.kapitencraft.scripted.edit.RenderHelper;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.connector.ArgumentExprConnector;
 import net.kapitencraft.scripted.edit.graphical.connector.Connector;
@@ -51,7 +51,7 @@ public class BinaryOperationWidget implements ExprCodeWidget {
 
     @Override
     public int getWidth(Font font) {
-        return 6 + RenderHelper.getVisualTextWidth(font, "§op", Map.of("left", left, "right", right));
+        return 6 + TextRenderHelper.getVisualTextWidth(font, "§op", Map.of("left", left, "right", right));
     }
 
     @Override
@@ -78,14 +78,14 @@ public class BinaryOperationWidget implements ExprCodeWidget {
     @Override
     public void registerInteractions(int xOrigin, int yOrigin, Font font, Consumer<CodeInteraction> sink) {
         this.left.registerInteractions(xOrigin, yOrigin, font, sink);
-        this.operatorWidget.registerInteractions(xOrigin + RenderHelper.getPartialWidth(font, "§op", Map.of("left", left, "op", operatorWidget, "right", right), "op"), yOrigin, font, sink);
+        this.operatorWidget.registerInteractions(xOrigin + TextRenderHelper.getPartialWidth(font, "§op", Map.of("left", left, "op", operatorWidget, "right", right), "op"), yOrigin, font, sink);
         this.right.registerInteractions(xOrigin, yOrigin, font, sink);
     }
 
     @Override
     public void collectConnectors(int aX, int aY, Font font, Consumer<Connector> collector) {
         Map<String, ExprCodeWidget> params = Map.of("left", left, "op", operatorWidget, "right", right);
-        RenderHelper.forPartialWidth(font, "§op", params, (s, integer) -> {
+        TextRenderHelper.forPartialWidth(font, "§op", params, (s, integer) -> {
             if (!"op".equals(s)) {
                 collector.accept(new ArgumentExprConnector(aX + integer, aY, this, s));
                 params.get(s).collectConnectors(aX + integer, aY, font, collector);
@@ -103,11 +103,11 @@ public class BinaryOperationWidget implements ExprCodeWidget {
     }
 
     @Override
-    public CodeWidget getByName(String argName) {
-        return switch (argName) {
+    public CodeWidget getByName(String arg) {
+        return switch (arg) {
             case "left" -> this.left;
             case "right" -> this.right;
-            default -> throw new IllegalArgumentException("unknown arg type for binary: " + argName);
+            default -> throw new IllegalArgumentException("unknown arg type for binary: " + arg);
         };
     }
 
