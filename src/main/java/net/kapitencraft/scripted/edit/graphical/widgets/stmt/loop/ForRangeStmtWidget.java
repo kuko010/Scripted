@@ -1,12 +1,10 @@
-package net.kapitencraft.scripted.edit.graphical.widgets.block;
+package net.kapitencraft.scripted.edit.graphical.widgets.stmt.loop;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.kapitencraft.scripted.edit.TextRenderHelper;
-import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
 import net.kapitencraft.scripted.edit.graphical.connector.ArgumentExprConnector;
-import net.kapitencraft.scripted.edit.graphical.connector.CommonBranchBlockConnector;
 import net.kapitencraft.scripted.edit.graphical.connector.Connector;
 import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
 import net.kapitencraft.scripted.edit.graphical.fetch.WidgetFetchResult;
@@ -16,6 +14,7 @@ import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ParamWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.VarNameSelectorWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.interaction.CodeInteraction;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.StmtCodeWidget;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.NotNull;
@@ -26,25 +25,25 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class ForRangeStmtWidget extends BlockCodeWidget {
+public class ForRangeStmtWidget extends LoopStmtWidget {
     public static final MapCodec<ForRangeStmtWidget> CODEC = RecordCodecBuilder.mapCodec(i -> commonFields(i)
             .and(ExprCodeWidget.CODEC.optionalFieldOf("min", ParamWidget.NUM).forGetter(ForRangeStmtWidget::getMin))
             .and(ExprCodeWidget.CODEC.optionalFieldOf("max", ParamWidget.NUM).forGetter(ForRangeStmtWidget::getMax))
             .and(ExprCodeWidget.CODEC.optionalFieldOf("step", ParamWidget.NUM).forGetter(ForRangeStmtWidget::getStep))
-            .and(BlockCodeWidget.CODEC.optionalFieldOf("body").forGetter(w -> Optional.ofNullable(w.body)))
+            .and(StmtCodeWidget.CODEC.optionalFieldOf("body").forGetter(w -> Optional.ofNullable(w.body)))
             .apply(i, ForRangeStmtWidget::new)
     );
 
     private final VarNameSelectorWidget varName = new VarNameSelectorWidget();
     private final Map<String, ExprCodeWidget> args;
-    private BlockCodeWidget body;
+    private StmtCodeWidget body;
 
-    private ForRangeStmtWidget(Optional<BlockCodeWidget> child, ExprCodeWidget min, ExprCodeWidget max, ExprCodeWidget step, Optional<BlockCodeWidget> body) {
+    private ForRangeStmtWidget(Optional<StmtCodeWidget> child, ExprCodeWidget min, ExprCodeWidget max, ExprCodeWidget step, Optional<StmtCodeWidget> body) {
         this(min, max, step, body.orElse(null));
         child.ifPresent(this::setChild);
     }
 
-    private ForRangeStmtWidget(ExprCodeWidget lowerBound, ExprCodeWidget upperBound, ExprCodeWidget step, BlockCodeWidget body) {
+    private ForRangeStmtWidget(ExprCodeWidget lowerBound, ExprCodeWidget upperBound, ExprCodeWidget step, StmtCodeWidget body) {
         this.args = new HashMap<>();
         args.put("var", varName);
         args.put("min", lowerBound);
@@ -59,33 +58,16 @@ public class ForRangeStmtWidget extends BlockCodeWidget {
         return Type.FOR_RANGE_STMT;
     }
 
-    @Override
-    public int getWidth(Font font) {
-        int headWidth = getHeadWidth(font);
-        if (body != null && body.getWidth(font) > headWidth)
-            return body.getWidth(font);
-        return headWidth;
-    }
-
-    @Override
-    public int getHeight() {
-        return getHeadHeight() + getBodyHeight() + 13;
-    }
-
-    private int getHeadHeight() {
+    protected int getHeadHeight() {
         return Math.max(18, ExprCodeWidget.getHeightFromArgs(this.args) + 4) + 2;
     }
 
-    private int getHeadWidth(Font font) {
-        return 4 + TextRenderHelper.getVisualTextWidth(font, "§for", this.args);
-    }
-
-    private int getBodyHeight() {
-        return body != null ? body.getHeightWithChildren() : 10;
+    protected int getHeadWidth(Font font) {
+        return 6 + TextRenderHelper.getVisualTextWidth(font, "§for_range", this.args);
     }
 
     @Override
-    public BlockCodeWidget copy() {
+    public StmtCodeWidget copy() {
         return new ForRangeStmtWidget(
                 this.args.get("min").copy(),
                 this.args.get("max").copy(),
@@ -122,18 +104,7 @@ public class ForRangeStmtWidget extends BlockCodeWidget {
 
     @Override
     public void collectConnectors(int aX, int aY, Font font, Consumer<Connector> collector) {
-        ArgumentExprConnector.parse(font, aX + 4, aY, "§for", this.args, this, collector);
-
-        int headHeight = this.getHeadHeight();
-        collector.accept(new CommonBranchBlockConnector(
-                aX + 6,
-                aY + headHeight,
-                this::setBody,
-                () -> this.body,
-                font,
-                collector
-        ));
-
+        ArgumentExprConnector.parse(font, aX + 4, aY, "§for_range", this.args, this, collector);
         super.collectConnectors(aX, aY, font, collector);
     }
 
@@ -161,29 +132,15 @@ public class ForRangeStmtWidget extends BlockCodeWidget {
         return super.fetchAndRemoveHovered(x, y - getHeight(), font);
     }
 
-    private void setBody(BlockCodeWidget widget) {
-        this.body = widget;
-    }
-
     @Override
-    public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
-        int headWidth = getHeadWidth(font);
+    public void renderHead(GuiGraphics graphics, Font font, int renderX, int renderY) {
         int headHeight = getHeadHeight();
 
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_HEAD, renderX, renderY, headWidth, headHeight + 3);
         TextRenderHelper.renderVisualText(graphics, font,
                 renderX,
                 renderY + 7 + (headHeight - 20) / 2,
-                "§for", args
+                "§for_range", args
         );
-
-        int bodyHeight = getBodyHeight();
-        if (this.body != null)
-            this.body.render(graphics, font, renderX + 6, renderY + headHeight);
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_ENCLOSURE, renderX, renderY + headHeight + 3, 6, bodyHeight - 3);
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_END, renderX, renderY + headHeight + bodyHeight, headWidth, 16);
-
-        super.render(graphics, font, renderX, renderY);
     }
 
     public static Builder builder() {
@@ -192,9 +149,7 @@ public class ForRangeStmtWidget extends BlockCodeWidget {
 
     @Override
     public void registerInteractions(int xOrigin, int yOrigin, Font font, Consumer<CodeInteraction> sink) {
-        TextRenderHelper.registerAllInteractions(xOrigin + 4, yOrigin + 7 + (getHeadHeight() - 20) / 2, font, sink, "§for", args);
-        if (this.body != null)
-            this.body.registerInteractions(xOrigin + 6, yOrigin + this.getHeadHeight(), font, sink);
+        TextRenderHelper.registerAllInteractions(xOrigin + 4, yOrigin + 7 + (getHeadHeight() - 20) / 2, font, sink, "§for_range", args);
 
         super.registerInteractions(xOrigin, yOrigin, font, sink);
     }
@@ -202,16 +157,14 @@ public class ForRangeStmtWidget extends BlockCodeWidget {
     @Override
     public void update(@Nullable MethodContext context, Font font) {
         this.args.values().forEach(w -> w.update(context, font));
-        if (this.body != null)
-            this.body.update(context, font);
         super.update(context, font);
     }
 
-    public static class Builder implements BlockCodeWidget.Builder<ForRangeStmtWidget> {
+    public static class Builder implements StmtCodeWidget.Builder<ForRangeStmtWidget> {
         private ExprCodeWidget min = ParamWidget.NUM;
         private ExprCodeWidget max = ParamWidget.NUM;
         private ExprCodeWidget step = ParamWidget.NUM;
-        private BlockCodeWidget body;
+        private StmtCodeWidget body;
 
         public Builder setMin(ExprCodeWidget widget) {
             this.min = widget;

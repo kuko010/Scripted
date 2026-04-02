@@ -2,14 +2,16 @@ package net.kapitencraft.scripted.edit.graphical.selection;
 
 import net.kapitencraft.scripted.Scripted;
 import net.kapitencraft.scripted.edit.graphical.ExprCategory;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.AssignVarWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.ForRangeStmtWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.IfStmtWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.WhileStmtWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.BlockSelectWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.GetVarWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ParamWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.AssignVarWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.IfStmtWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.SimpleScopeEndWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.loop.ForEachStmtWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.loop.ForRangeStmtWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.loop.WhileStmtWidget;
 import net.kapitencraft.scripted.registry.ModRegistries;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
@@ -48,10 +50,14 @@ public interface SelectionTabs {
                 .withEntry(IfStmtWidget.builder().withElseIfNoCondition())
                 .withEntry(WhileStmtWidget.builder())
                 .withEntry(ForRangeStmtWidget.builder())
+                .withEntry(ForEachStmtWidget.builder())
+                .withEntry(SimpleScopeEndWidget.CONTINUE)
+                .withEntry(SimpleScopeEndWidget.BREAK)
+                .withEntry(SimpleScopeEndWidget.RETURN)
                 .build()
         );
         context.register(VARIABLES, SelectionTab.builder()
-                        .withEntry(AssignVarWidget.builder().doesCreateVar())
+                .withEntry(AssignVarWidget.builder().doesCreateVar())
                 .withEntry(AssignVarWidget.builder().setExpr(ParamWidget.OBJ))
                 .withEntry(new GetVarWidget(null))
                 .build()

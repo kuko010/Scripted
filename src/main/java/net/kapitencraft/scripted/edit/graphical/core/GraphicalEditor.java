@@ -12,12 +12,12 @@ import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
 import net.kapitencraft.scripted.edit.graphical.fetch.WidgetFetchResult;
 import net.kapitencraft.scripted.edit.graphical.selection.SelectionTab;
 import net.kapitencraft.scripted.edit.graphical.widgets.CodeWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.BlockCodeWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.HeadWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ParamWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.interaction.CodeInteraction;
 import net.kapitencraft.scripted.edit.graphical.widgets.interaction.InteractionData;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.HeadWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.StmtCodeWidget;
 import net.minecraft.Util;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -44,7 +44,7 @@ public class GraphicalEditor extends AbstractWidget {
 
     private @Nullable PositionedWidget widget;
     private CodeWidget draggedWidget;
-    private final GhostBlockWidget ghostBlockWidget = new GhostBlockWidget();
+    private final GhostStmtWidget ghostBlockWidget = new GhostStmtWidget();
     private final GhostExprWidget ghostExprWidget = new GhostExprWidget();
     private CodeWidget ghostExprOriginal;
     private CodeElement ghostTargetElement;
@@ -359,7 +359,7 @@ public class GraphicalEditor extends AbstractWidget {
                                 return;
                             }
                             if (connector instanceof BlockConnector bc) {
-                                if (draggedWidget instanceof BlockCodeWidget) {
+                                if (draggedWidget instanceof StmtCodeWidget) {
                                     if (this.connector != null)
                                         this.connector.insert(this.ghostBlockWidget.getChild());
                                     this.ghostBlockWidget.setChild(bc.get());
@@ -408,7 +408,7 @@ public class GraphicalEditor extends AbstractWidget {
         }
         if (this.draggedWidget != null) {
             if (connector != null) {
-                if (draggedWidget instanceof BlockCodeWidget bcw) {
+                if (draggedWidget instanceof StmtCodeWidget bcw) {
                     bcw.setBottomChild(this.ghostBlockWidget.getChild());
                 } else {
                     CodeWidget original = ghostExprOriginal;
@@ -432,7 +432,7 @@ public class GraphicalEditor extends AbstractWidget {
                 int uiX = (int) (mouseX / scale - scrollX) - getX();
                 int uiY = (int) (mouseY / scale - scrollY) - getY();
 
-                if (this.draggedWidget instanceof BlockCodeWidget bCW) {
+                if (this.draggedWidget instanceof StmtCodeWidget bCW) {
                     this.elements.addFirst(new BlockCodeElement(uiX + this.draggedOffsetX, uiY + this.draggedOffsetY, bCW)); //add as first view and access
                 } else {
                     this.elements.addFirst(new ExprCodeElement(uiX + this.draggedOffsetX, uiY + this.draggedOffsetY, (ExprCodeWidget) this.draggedWidget));
@@ -537,11 +537,11 @@ public class GraphicalEditor extends AbstractWidget {
 
     private class BlockCodeElement extends CodeElement {
 
-        private BlockCodeElement(@NotNull BlockCodeWidget widget) {
+        private BlockCodeElement(@NotNull StmtCodeWidget widget) {
             this(150, 40, widget);
         }
 
-        private BlockCodeElement(int x, int y, @NotNull BlockCodeWidget widget) {
+        private BlockCodeElement(int x, int y, @NotNull StmtCodeWidget widget) {
             super(x, y, widget);
             this.update();
         }
@@ -549,7 +549,7 @@ public class GraphicalEditor extends AbstractWidget {
         @Override
         protected int calculateWidgetWidth() {
             Integer width = null;
-            BlockCodeWidget blockWidget = this.widget();
+            StmtCodeWidget blockWidget = this.widget();
             do {
                 if (width == null || blockWidget.getWidth(font) > width) {
                     width = blockWidget.getWidth(font);
@@ -561,7 +561,7 @@ public class GraphicalEditor extends AbstractWidget {
 
         protected int calculateWidgetHeight() {
             int height = 0;
-            BlockCodeWidget blockWidget = this.widget();
+            StmtCodeWidget blockWidget = this.widget();
             do {
                 height += blockWidget.getHeight();
                 blockWidget = blockWidget.getChild();
@@ -570,8 +570,8 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public @NotNull BlockCodeWidget widget() {
-            return (BlockCodeWidget) this.widget;
+        public @NotNull StmtCodeWidget widget() {
+            return (StmtCodeWidget) this.widget;
         }
     }
 
@@ -600,7 +600,7 @@ public class GraphicalEditor extends AbstractWidget {
     //endregion
 
     //region ghost
-    private class GhostBlockWidget extends BlockCodeWidget {
+    private class GhostStmtWidget extends StmtCodeWidget {
 
         @SuppressWarnings("DataFlowIssue")
         @Override
@@ -640,7 +640,7 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public BlockCodeWidget copy() {
+        public StmtCodeWidget copy() {
             throw new IllegalAccessError("attempting to copy ghost widget");
         }
 

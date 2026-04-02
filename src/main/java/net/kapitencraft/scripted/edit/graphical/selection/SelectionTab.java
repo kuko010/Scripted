@@ -5,8 +5,8 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.kapitencraft.scripted.edit.graphical.widgets.CodeWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.BlockCodeWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.StmtCodeWidget;
 import net.minecraft.client.gui.Font;
 import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.NotNull;
@@ -38,8 +38,12 @@ public record SelectionTab(List<Entry> widgets) {
             return this;
         }
 
-        public Builder withEntry(BlockCodeWidget.Builder<?> builder) {
-            this.widgets.add(new StmtEntry(builder.build()));
+        public Builder withEntry(StmtCodeWidget.Builder<?> builder) {
+            return withEntry(builder.build());
+        }
+
+        public Builder withEntry(StmtCodeWidget widget) {
+            this.widgets.add(new StmtEntry(widget));
             return this;
         }
 
@@ -93,8 +97,8 @@ public record SelectionTab(List<Entry> widgets) {
         }
     }
 
-    private record StmtEntry(BlockCodeWidget value) implements Entry {
-        private static final Codec<StmtEntry> CODEC = BlockCodeWidget.CODEC.xmap(StmtEntry::new, StmtEntry::value);
+    private record StmtEntry(StmtCodeWidget value) implements Entry {
+        private static final Codec<StmtEntry> CODEC = StmtCodeWidget.CODEC.xmap(StmtEntry::new, StmtEntry::value);
 
         @Override
         public CodeType getType() {

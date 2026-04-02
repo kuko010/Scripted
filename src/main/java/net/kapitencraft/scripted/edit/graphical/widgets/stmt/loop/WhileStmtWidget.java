@@ -1,12 +1,10 @@
-package net.kapitencraft.scripted.edit.graphical.widgets.block;
+package net.kapitencraft.scripted.edit.graphical.widgets.stmt.loop;
 
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.kapitencraft.scripted.edit.TextRenderHelper;
-import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
 import net.kapitencraft.scripted.edit.graphical.MethodContext;
-import net.kapitencraft.scripted.edit.graphical.connector.CommonBranchBlockConnector;
 import net.kapitencraft.scripted.edit.graphical.connector.Connector;
 import net.kapitencraft.scripted.edit.graphical.connector.SingletonExprConnector;
 import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
@@ -16,6 +14,7 @@ import net.kapitencraft.scripted.edit.graphical.widgets.CodeWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ParamWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.interaction.CodeInteraction;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.StmtCodeWidget;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.NotNull;
@@ -25,32 +24,32 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class WhileStmtWidget extends BlockCodeWidget {
+public class WhileStmtWidget extends LoopStmtWidget {
     public static final MapCodec<WhileStmtWidget> CODEC = RecordCodecBuilder.mapCodec(i ->
-            BlockCodeWidget.commonFields(i).and(
+            StmtCodeWidget.commonFields(i).and(
                     ExprCodeWidget.CODEC.optionalFieldOf("condition", ParamWidget.CONDITION).forGetter(w -> w.condition)
             ).and(
-                    BlockCodeWidget.CODEC.optionalFieldOf("body").forGetter(w -> Optional.ofNullable(w.body))
+                    StmtCodeWidget.CODEC.optionalFieldOf("body").forGetter(w -> Optional.ofNullable(w.body))
             ).apply(i, WhileStmtWidget::new)
     );
 
     @NotNull
     private ExprCodeWidget condition;
-    private @Nullable BlockCodeWidget body;
+    private @Nullable StmtCodeWidget body;
 
-    public WhileStmtWidget(@NotNull ExprCodeWidget condition, @Nullable BlockCodeWidget body) {
+    public WhileStmtWidget(@NotNull ExprCodeWidget condition, @Nullable StmtCodeWidget body) {
         this.condition = condition;
         this.body = body;
     }
 
-    private WhileStmtWidget(BlockCodeWidget child, @NotNull ExprCodeWidget condition, @Nullable BlockCodeWidget body) {
+    private WhileStmtWidget(StmtCodeWidget child, @NotNull ExprCodeWidget condition, @Nullable StmtCodeWidget body) {
         Preconditions.checkNotNull(condition);
         this.condition = condition;
         this.body = body;
         this.setChild(child);
     }
 
-    public WhileStmtWidget(Optional<BlockCodeWidget> blockWidget, @NotNull ExprCodeWidget condition, Optional<BlockCodeWidget> body) {
+    public WhileStmtWidget(Optional<StmtCodeWidget> blockWidget, @NotNull ExprCodeWidget condition, Optional<StmtCodeWidget> body) {
         blockWidget.ifPresent(this::setChild);
         Preconditions.checkNotNull(condition);
         this.condition = condition;
@@ -58,7 +57,7 @@ public class WhileStmtWidget extends BlockCodeWidget {
     }
 
     @Override
-    public BlockCodeWidget copy() {
+    public StmtCodeWidget copy() {
         return new WhileStmtWidget(
                 this.getChildCopy(),
                 this.condition.copy(),
@@ -83,7 +82,7 @@ public class WhileStmtWidget extends BlockCodeWidget {
 
     @Override
     protected @NotNull Type getType() {
-        return Type.WHILE_LOOP;
+        return Type.WHILE_STMT;
     }
 
     @Override
@@ -94,67 +93,25 @@ public class WhileStmtWidget extends BlockCodeWidget {
                 this::setCondition,
                 () -> this.condition
         ));
-        collector.accept(new CommonBranchBlockConnector(
-                aX + 6,
-                aY + this.getHeadHeight(),
-                this::setBody,
-                () -> this.body,
-                font,
-                collector
-        ));
         super.collectConnectors(aX, aY, font, collector);
     }
 
     @Override
-    public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
-        int loopWidth = getHeadWidth(font);
+    void renderHead(GuiGraphics graphics, Font font, int renderX, int renderY) {
         int headHeight = getHeadHeight();
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_HEAD, renderX, renderY, loopWidth, headHeight + 3);
         TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 7 + (headHeight - 18) / 2, "§while", Map.of("condition", this.condition));
-        int bodyHeight = getBranchHeight();
-        if (this.body != null)
-            this.body.render(graphics, font, renderX + 6, renderY + headHeight);
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_ENCLOSURE, renderX, renderY + headHeight + 3, 6, bodyHeight - 3);
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_END, renderX, renderY + headHeight + bodyHeight, loopWidth, 16);
-        super.render(graphics, font, renderX, renderY);
     }
 
-    private int getHeadHeight() {
+    protected int getHeadHeight() {
         return Math.max(18, this.condition.getHeight() + 4) + 2;
     }
 
-    private int getBranchHeight() {
-        return this.body != null ? this.body.getHeightWithChildren() : 10;
-    }
-
-    private int getHeadWidth(Font font) {
+    protected int getHeadWidth(Font font) {
         return 4 + TextRenderHelper.getVisualTextWidth(font, "§while", Map.of("condition", this.condition));
     }
 
-    @Override
-    public int getWidth(Font font) {
-        int width = getHeadWidth(font);
-        if (this.body != null) {
-            int i = this.body.getWidth(font) + 6;
-            if (i > width)
-                width = i;
-        }
-        return width;
-    }
-
-    @Override
-    public int getHeight() {
-        return getHeadHeight() +
-                getBranchHeight() + 13;
-    }
-
-    public void setBody(@Nullable BlockCodeWidget target) {
+    public void setBody(@Nullable StmtCodeWidget target) {
         this.body = target;
-    }
-
-    public void insertBodyMiddle(BlockCodeWidget widget) {
-        widget.setChild(this.body);
-        this.body = widget;
     }
 
     @Override
@@ -187,17 +144,17 @@ public class WhileStmtWidget extends BlockCodeWidget {
         this.condition = target == null ? ParamWidget.CONDITION : target;
     }
 
-    public static class Builder implements BlockCodeWidget.Builder<WhileStmtWidget> {
-        private BlockCodeWidget child;
+    public static class Builder implements StmtCodeWidget.Builder<WhileStmtWidget> {
+        private StmtCodeWidget child;
         private ExprCodeWidget condition = ParamWidget.CONDITION;
-        private BlockCodeWidget body;
+        private StmtCodeWidget body;
 
-        public Builder setBody(BlockCodeWidget.Builder<?> widget) {
+        public Builder setBody(StmtCodeWidget.Builder<?> widget) {
             this.body = widget.build();
             return this;
         }
 
-        public Builder setChild(BlockCodeWidget.Builder<?> widget) {
+        public Builder setChild(StmtCodeWidget.Builder<?> widget) {
             this.child = widget.build();
             return this;
         }
@@ -221,15 +178,6 @@ public class WhileStmtWidget extends BlockCodeWidget {
     @Override
     public void update(@Nullable MethodContext context, Font font) {
         this.condition.update(context, font);
-        if (this.body != null) {
-            if (context != null) {
-                context.lvt.push();
-            }
-            this.body.update(context, font);
-            if (context != null) {
-                context.lvt.pop();
-            }
-        }
         super.update(context, font);
     }
 }

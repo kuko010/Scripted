@@ -1,4 +1,4 @@
-package net.kapitencraft.scripted.edit.graphical.widgets.block;
+package net.kapitencraft.scripted.edit.graphical.widgets.stmt;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class AssignVarWidget extends BlockCodeWidget {
+public class AssignVarWidget extends StmtCodeWidget {
     public static final MapCodec<AssignVarWidget> CODEC = RecordCodecBuilder.mapCodec(i ->
             commonFields(i).and(
                     Codec.STRING.optionalFieldOf("name").forGetter(w -> Optional.ofNullable(w.varNameSelectorWidget.getSelected()))
@@ -37,14 +37,14 @@ public class AssignVarWidget extends BlockCodeWidget {
     private ExprCodeWidget expr;
     private final VarNameSelectorWidget varNameSelectorWidget = new VarNameSelectorWidget();
 
-    private AssignVarWidget(BlockCodeWidget child, String varName, ExprCodeWidget expr, boolean createsVar) {
+    private AssignVarWidget(StmtCodeWidget child, String varName, ExprCodeWidget expr, boolean createsVar) {
         this.expr = expr;
         this.setChild(child);
         this.varNameSelectorWidget.setSelected(varName);
         this.varNameSelectorWidget.setCreate(createsVar);
     }
 
-    public AssignVarWidget(Optional<BlockCodeWidget> child, Optional<String> varName, ExprCodeWidget expr, boolean createVar) {
+    public AssignVarWidget(Optional<StmtCodeWidget> child, Optional<String> varName, ExprCodeWidget expr, boolean createVar) {
         this.expr = expr;
         child.ifPresent(this::setChild);
         varName.ifPresent(this.varNameSelectorWidget::setSelected);
@@ -52,7 +52,7 @@ public class AssignVarWidget extends BlockCodeWidget {
     }
 
     @Override
-    public BlockCodeWidget copy() {
+    public StmtCodeWidget copy() {
         return new AssignVarWidget(
                 getChildCopy(),
                 this.varNameSelectorWidget.getVisualSelected(),
@@ -153,8 +153,8 @@ public class AssignVarWidget extends BlockCodeWidget {
         super.update(context, font);
     }
 
-    public static class Builder implements BlockCodeWidget.Builder<AssignVarWidget> {
-        private BlockCodeWidget child;
+    public static class Builder implements StmtCodeWidget.Builder<AssignVarWidget> {
+        private StmtCodeWidget child;
         private String varName;
         private ExprCodeWidget expr = ParamWidget.NUM;
         private boolean createVar = false;
@@ -173,7 +173,7 @@ public class AssignVarWidget extends BlockCodeWidget {
             return this.setExpr(builder.build());
         }
 
-        public Builder setChild(BlockCodeWidget.Builder<?> builder) {
+        public Builder setChild(StmtCodeWidget.Builder<?> builder) {
             this.child = builder.build();
             return this;
         }
