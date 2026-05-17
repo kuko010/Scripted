@@ -2,18 +2,20 @@ package net.kapitencraft.scripted.edit.graphical.widgets.expr;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
-import net.kapitencraft.scripted.edit.graphical.fetch.BlockRemovable;
+import net.kapitencraft.scripted.edit.graphical.connector.Connector;
 import net.kapitencraft.scripted.edit.graphical.widgets.CodeWidget;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public interface ExprCodeWidget extends BlockRemovable, CodeWidget {
+public interface ExprCodeWidget extends CodeWidget {
     Codec<ExprCodeWidget> CODEC = Type.CODEC.dispatch(ExprCodeWidget::getType, Type::getEntryCodec);
 
     @NotNull Type getType();
@@ -32,7 +34,7 @@ public interface ExprCodeWidget extends BlockRemovable, CodeWidget {
         PARAM(() -> ParamWidget.CODEC),
         EXPR(() -> ExprWidget.CODEC),
         GET_VAR(() -> GetVarWidget.CODEC),
-        LIST_SELECTION(() -> ListSelectionWidget.CODEC),
+        BINARY(() -> BinaryOperationWidget.CODEC),
         SELECT_BLOCK(() -> BlockSelectWidget.CODEC);
 
         public static final EnumCodec<Type> CODEC = StringRepresentable.fromEnum(Type::values);
@@ -54,7 +56,11 @@ public interface ExprCodeWidget extends BlockRemovable, CodeWidget {
     }
 
     static int getHeightFromArgs(Map<String, ExprCodeWidget> widgets) {
-        return widgets.values().stream().mapToInt(ExprCodeWidget::getHeight).max().orElse(0);
+        return getHeightFromEntries(widgets.values());
+    }
+
+    static int getHeightFromEntries(Collection<ExprCodeWidget> widgets) {
+        return widgets.stream().mapToInt(ExprCodeWidget::getHeight).max().orElse(0);
     }
 
     static int getWidthFromList(Font font, List<ExprCodeWidget> widgets) {

@@ -1,4 +1,7 @@
 {
+  "debug.editor.on": "Enabled Editor debug",
+  "debug.editor.off": "Disabled Editor debug",
+
   "edit_screen.title": "Edit Screen",
 
   "error.code_after_cancel": "Unreachable statement",
@@ -17,30 +20,36 @@
 
   "selection_tab.scripted.operators": "Operators",
   "selection_tab.scripted.control": "Control",
+  "selection_tab.scripted.variables": "Variables",
+  "selection_tab.scripted.world": "World",
 
-  "§assign": "set %{var}% to %{value}%",
-  "§assign_add": "increase %{var}% by %{value}%",
-  "§assign_sub": "remove %{value}% from %{var}%",
-  "§assign_mul": "scale %{var}% with %{value}%",
-  "§assign_div": "divide %{var}% by %{value}%",
-  "§if": "if %{condition}% do",
-  "§while": "while %{condition}% do",
-  "§for": "for %{var}% from %{min}% to %{max}% each %{interval}% do",
-  "§return": "return %{value}%",
+  "§assign": "set {var} to {value}",
+  "§initialize": "initialize {var} to {value}",
+  "§get": "get variable {var}",
+  "§if": "if {condition} do",
+  "§while": "while {condition} do",
+  "§for_range": "for {var} from {min} to {max} each {interval} do",
+  "§for_each": "for each {var} in {expr}",
+  "§return": "return",
+  "§return_val": "return {value}",
   "§break": "break this loop",
   "§continue": "continue with next loop iteration",
-  "§else_if": "else if %{condition} do",
+  "§else_if": "else if {condition} do",
   "§else": "else do",
-  "§get": "get variable %{var}%",
+  "§op": "{left} {op} {right}",
 
-  "scripted.code.head.test": "First Method OMG",
-  "scripted.code.expr.test0": "a test with expr %{arg0}%",
+  "scripted.code.head.test": "A Method",
+  "scripted.code.expr.test0": "a test with expr {arg0}",
   "scripted.code.expr.test1": "Some Expression",
   "scripted.code.expr.test2": "",
 
-  "Lnet/minecraft/world/phys/Vec3;dot(Lnet/minecraft/world/phys/Vec3;)D": "calculate dot product with %{vec}%",
-  "Lnet/minecraft/world/phys/Vec3;cross(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;": "calculate cross product with %{vec}%",
+  "Lnet/minecraft/core/BlockPos;<init>(III)V": "position at {x} {y} {z}",
+  "Lnet/minecraft/world/phys/Vec3;x": "x value",
+  "Lnet/minecraft/world/phys/Vec3;y": "y value",
+  "Lnet/minecraft/world/phys/Vec3;z": "z value",
+  "Lnet/minecraft/world/phys/Vec3;dot(Lnet/minecraft/world/phys/Vec3;)D": "calculate dot product with {vec}",
+  "Lnet/minecraft/world/phys/Vec3;cross(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;": "calculate cross product with {vec}",
   "Lnet/minecraft/world/phys/Vec3;normalize()Lnet/minecraft/world/phys/Vec3;": "then normalize",
-  "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/Blockstate;": "BlockState at %{pos}%",
-  "Lnet/minecraft/world/level/block/state/BlockState;is(Lnet/minecraft/world/level/block/Block;)Z": "matches block %{block}%"
+  "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;": "BlockState at {pos}",
+  "Lnet/minecraft/world/level/block/state/BlockState;is(Lnet/minecraft/world/level/block/Block;)Z": "matches block {block}"
 }

@@ -1,0 +1,138 @@
+package net.kapitencraft.scripted.edit.graphical.widgets.stmt;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.kapitencraft.scripted.edit.TextRenderHelper;
+import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
+import net.kapitencraft.scripted.edit.graphical.MethodContext;
+import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
+import net.kapitencraft.scripted.edit.graphical.fetch.WidgetFetchResult;
+import net.kapitencraft.scripted.edit.graphical.widgets.CodeWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+//the difference to ExprCodeWidget?
+//idk
+public class MethodStmtWidget extends StmtCodeWidget {
+    public static final MapCodec<MethodStmtWidget> CODEC = RecordCodecBuilder.mapCodec(i ->
+            commonFields(i)
+                    .and(Codec.STRING.fieldOf("signature").forGetter(w -> w.signature))
+                    .and(Codec.unboundedMap(Codec.STRING, ExprCodeWidget.CODEC).fieldOf("args").forGetter(w -> w.args))
+                    .apply(i, MethodStmtWidget::new)
+    );
+
+    private final String signature;
+    private final Map<String, ExprCodeWidget> args = new HashMap<>();
+
+    public MethodStmtWidget(Optional<StmtCodeWidget> child, String signature, Map<String, ExprCodeWidget> args) {
+        this.signature = signature;
+        this.args.putAll(args);
+        child.ifPresent(this::setChild);
+    }
+
+    public MethodStmtWidget(StmtCodeWidget child, String sig, Map<String, ExprCodeWidget> args) {
+        this.setChild(child);
+        this.signature = sig;
+        this.args.putAll(args);
+    }
+
+    @Override
+    public StmtCodeWidget copy() {
+        return new MethodStmtWidget(
+                this.getChildCopy(),
+                this.signature,
+                this.args
+        );
+    }
+
+    @Override
+    public void insertByName(@NotNull String arg, @NotNull ExprCodeWidget obj) {
+        if (args.containsKey(arg)) {
+            args.put(arg, obj);
+        } else {
+            throw new IllegalArgumentException("unknown argument in expr '" + this.signature + "': " + arg);
+        }
+    }
+
+    @Override
+    public CodeWidget getByName(String arg) {
+        return args.get(arg);
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @Override
+    protected @NotNull Type getType() {
+        return Type.METHOD_STMT;
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
+
+        int height = getHeight();
+        graphics.blitSprite(CodeWidgetSprites.SIMPLE_BLOCK, renderX, renderY, 6 + getWidth(font), 3 + height);
+        TextRenderHelper.renderVisualText(graphics, font, renderX, renderY + 7, signature, args);
+    }
+
+    @Override
+    public int getWidth(Font font) {
+        return TextRenderHelper.getVisualTextWidth(font, this.signature, this.args) + 12;
+    }
+
+    @Override
+    public int getHeight() {
+        return Math.max(19, ExprCodeWidget.getHeightFromArgs(this.args) + 4);
+    }
+
+    @Override
+    public @Nullable WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
+        return x < this.getWidth(font) ? BlockWidgetFetchResult.notRemoved(this, x, y) : super.fetchAndRemoveHovered(x, y, font);
+    }
+
+    @Override
+    public void update(@Nullable MethodContext context, Font font) {
+        this.args.values().forEach(c -> c.update(context, font));
+        super.update(context, font);
+    }
+
+    public static class Builder implements StmtCodeWidget.Builder<MethodStmtWidget> {
+        private StmtCodeWidget child = null;
+        private String signature = null;
+        private final Map<String, ExprCodeWidget> arguments = new HashMap<>();
+
+        public Builder setChild(StmtCodeWidget child) {
+            this.child = child;
+            return this;
+        }
+
+        public Builder setChild(StmtCodeWidget.Builder<?> child) {
+            return this.setChild(child.build());
+        }
+
+        public Builder setSignature(String signature) {
+            this.signature = signature;
+            return this;
+        }
+
+        public Builder withArgument(String name, ExprCodeWidget child) {
+            this.arguments.put(name, child);
+            return this;
+        }
+
+        @Override
+        public MethodStmtWidget build() {
+            return new MethodStmtWidget(child, Objects.requireNonNull(signature, "missing signature"), arguments);
+        }
+    }
+}

@@ -2,6 +2,7 @@ package net.kapitencraft.scripted;
 
 import com.mojang.logging.LogUtils;
 import net.kapitencraft.scripted.edit.OpenEditScreenCommand;
+import net.kapitencraft.scripted.lang.exe.VarTypeManager;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -11,6 +12,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.slf4j.Logger;
 
@@ -28,8 +30,9 @@ public class Scripted {
         return DeferredRegister.create(key, MOD_ID);
     }
 
-    public Scripted(IEventBus bus)
-    {
+    public Scripted(IEventBus bus) {
+
+        VarTypeManager.init();
     }
 
     public static ResourceLocation res(String id) {
@@ -46,6 +49,11 @@ public class Scripted {
         @SubscribeEvent
         public static void addCommands(RegisterClientCommandsEvent event) {
             OpenEditScreenCommand.register(event.getDispatcher());
+        }
+
+        @SubscribeEvent
+        public static void onRegisterCommands(RegisterCommandsEvent event) {
+            ScriptCommand.register(event.getDispatcher());
         }
     }
 }

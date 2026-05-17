@@ -1,12 +1,65 @@
 [
   {
-    "type": "if",
-    "show_else": false
+    "type": "stmt",
+    "entry": {
+      "type": "if_stmt",
+      "elifs": [],
+      "show_else": false
+    }
   },
   {
-    "type": "if"
+    "type": "stmt",
+    "entry": {
+      "type": "if_stmt",
+      "elifs": []
+    }
   },
   {
-    "type": "while_loop"
+    "type": "stmt",
+    "entry": {
+      "type": "if_stmt",
+      "elifs": [
+        {}
+      ]
+    }
+  },
+  {
+    "type": "stmt",
+    "entry": {
+      "type": "while_stmt"
+    }
+  },
+  {
+    "type": "stmt",
+    "entry": {
+      "type": "for_range_stmt"
+    }
+  },
+  {
+    "type": "stmt",
+    "entry": {
+      "type": "for_each_stmt"
+    }
+  },
+  {
+    "type": "stmt",
+    "entry": {
+      "type": "simple_scope_end",
+      "end_type": "continue"
+    }
+  },
+  {
+    "type": "stmt",
+    "entry": {
+      "type": "simple_scope_end",
+      "end_type": "break"
+    }
+  },
+  {
+    "type": "stmt",
+    "entry": {
+      "type": "simple_scope_end",
+      "end_type": "return"
+    }
   }
 ]

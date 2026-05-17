@@ -1,24 +1,32 @@
 package net.kapitencraft.scripted.edit.graphical.core;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.kapitencraft.kap_lib.config.ClientModConfig;
+import net.kapitencraft.kap_lib.core.client.widget.PositionedWidget;
+import net.kapitencraft.kap_lib.core.config.CoreClientModConfig;
+import net.kapitencraft.kap_lib.core.helpers.ClientHelper;
 import net.kapitencraft.scripted.edit.graphical.CodeWidgetSprites;
+import net.kapitencraft.scripted.edit.graphical.MethodContext;
+import net.kapitencraft.scripted.edit.graphical.connector.BlockConnector;
+import net.kapitencraft.scripted.edit.graphical.connector.Connector;
 import net.kapitencraft.scripted.edit.graphical.fetch.BlockWidgetFetchResult;
-import net.kapitencraft.scripted.edit.graphical.inserter.block.BlockGhostInserter;
+import net.kapitencraft.scripted.edit.graphical.fetch.WidgetFetchResult;
 import net.kapitencraft.scripted.edit.graphical.selection.SelectionTab;
 import net.kapitencraft.scripted.edit.graphical.widgets.CodeWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.BlockCodeWidget;
-import net.kapitencraft.scripted.edit.graphical.widgets.block.HeadWidget;
 import net.kapitencraft.scripted.edit.graphical.widgets.expr.ExprCodeWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.expr.ParamWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.interaction.CodeInteraction;
+import net.kapitencraft.scripted.edit.graphical.widgets.interaction.InteractionData;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.HeadWidget;
+import net.kapitencraft.scripted.edit.graphical.widgets.stmt.StmtCodeWidget;
 import net.minecraft.Util;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
@@ -26,14 +34,21 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class GraphicalEditor extends AbstractWidget {
-    private final Registry<SelectionTab> tabs;
+    public static boolean renderDebug = true;
 
+    private final List<SelectionTab> tabs;
+    private final Registry<SelectionTab> registry;
+
+    private @Nullable PositionedWidget widget;
     private CodeWidget draggedWidget;
-    private final GhostBlockWidget ghostElement = new GhostBlockWidget();
-    private BlockCodeElement ghostTargetElement;
-    private BlockGhostInserter blockGhostInserter;
+    private final GhostStmtWidget ghostBlockWidget = new GhostStmtWidget();
+    private final GhostExprWidget ghostExprWidget = new GhostExprWidget();
+    private CodeWidget ghostExprOriginal;
+    private CodeElement ghostTargetElement;
+    private Connector connector;
     private int draggedOffsetX, draggedOffsetY;
 
     private final Font font;
@@ -43,8 +58,12 @@ public class GraphicalEditor extends AbstractWidget {
 
     public GraphicalEditor(int pX, int pY, int pWidth, int pHeight, Component pMessage, Font font, Registry<SelectionTab> tabs) {
         super(pX, pY, pWidth, pHeight, pMessage);
-        this.tabs = tabs;
+        this.registry = tabs;
+        this.tabs = tabs.stream().toList();
         this.font = font;
+        for (SelectionTab tab : this.tabs) {
+            tab.update(font);
+        }
 
         this.elements.add(
                 new BlockCodeElement(HeadWidget.builder()
@@ -95,11 +114,13 @@ public class GraphicalEditor extends AbstractWidget {
     @Override
     protected void renderWidget(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
 
-        pGuiGraphics.enableScissor(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight());
+        int x = getX();
+        int y = getY();
+        pGuiGraphics.enableScissor(x, y, x + this.getWidth(), y + this.getHeight());
         PoseStack pose = pGuiGraphics.pose();
+        pose.pushPose();
+        pose.translate(x, y, 0);
         {
-            pose.pushPose();
-            pose.translate(this.getX(), this.getY(), 0);
             pose.pushPose();
             pose.scale(scale, scale, 1);
 
@@ -145,45 +166,65 @@ public class GraphicalEditor extends AbstractWidget {
         pose.scale(scale, scale, 1);
         pose.translate(0, 0, 100);
         if (this.draggedWidget != null) {
-            this.draggedWidget.render(pGuiGraphics, font, pMouseX + this.draggedOffsetX, pMouseY + this.draggedOffsetY);
+            this.draggedWidget.render(pGuiGraphics, font, (int) ((pMouseX + this.draggedOffsetX) / scale), (int) ((pMouseY + this.draggedOffsetY) / scale));
         }
         pose.popPose();
         //endregion
 
         pose.pushPose();
-        pose.translate(getX() + 1, getY() + 1, 0);
+        pose.translate(x + 1, y + 1, 0);
         pose.scale(.75f, .75f, 1);
-        Holder<SelectionTab>[] tabs = this.tabs.holders().toArray(Holder[]::new);
-        for (int i = 0; i < tabs.length; i++) {
-            pGuiGraphics.drawString(font, Component.translatable(Util.makeDescriptionId("selection_tab", tabs[i].getKey().location())), 0, i * 10, -1, false);
+        for (int i = 0; i < tabs.size(); i++) {
+            Style style = Style.EMPTY;
+            if (pMouseX > x + 1 && pMouseX < x + 50 && pMouseY >= y + 10 * i + 1 && pMouseY <= y + 10 * i + 9) {
+                style = style.withBold(true);
+            }
+            pGuiGraphics.drawString(font,
+                    Component.translatable(
+                            Util.makeDescriptionId("selection_tab", this.registry.getKey(tabs.get(i)))
+                    ).withStyle(style),
+                    0,
+                    i * 10,
+                    -1,
+                    false
+            );
         }
         pose.popPose();
 
-        pGuiGraphics.enableScissor(this.getX() + 50, this.getY(), this.getX() + 105, this.getY() + this.getHeight());
+        pGuiGraphics.enableScissor(x + 50, y, x + 120, y + this.getHeight());
         pose.pushPose();
-        pose.translate(getX() + 60, getY(), 0);
+        pose.translate(x + 60, y, 0);
         pose.scale(0.75f, 0.75f, 1);
         pose.translate(0, this.selectionScroll, 0);
-        int y = 1;
-        for (Holder<SelectionTab> tab : tabs) {
-            SelectionTab value = tab.value();
-            pGuiGraphics.drawString(font, Component.translatable(Util.makeDescriptionId("selection_tab", tab.getKey().location())), 2, y, -1, false);
-            y += 10;
-            for (int i1 = 0; i1 < value.size(); i1++) {
-                CodeWidget widget = value.get(i1);
-                widget.render(pGuiGraphics, font, 0, y);
-                y += widget.getHeight();
-                y += 10;
+        int yO = 1;
+        for (SelectionTab tab : tabs) {
+            pGuiGraphics.drawString(font, Component.translatable(Util.makeDescriptionId("selection_tab", this.registry.getKey(tab))), 2, y, -1, false);
+            yO += 10;
+            for (int i1 = 0; i1 < tab.size(); i1++) {
+                CodeWidget widget = tab.get(i1);
+                widget.render(pGuiGraphics, font, 0, yO);
+                yO += widget.getHeight();
+                yO += 10;
             }
         }
         pose.popPose();
         pGuiGraphics.disableScissor();
+
+        if (this.widget != null) {
+            pose.pushPose();
+            pose.translate(0, 0, 400);
+            this.widget.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+            pose.popPose();
+        }
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (this.widget != null) {
+            return this.widget.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        }
         if (isPoolAreaHovered(mouseX, mouseY)) {
-            selectionScroll += (float) (scrollY * ClientModConfig.getScrollScale());
+            selectionScroll += (float) (scrollY * CoreClientModConfig.getScrollScale());
             return true;
         }
         if (Screen.hasControlDown()) {
@@ -212,7 +253,7 @@ public class GraphicalEditor extends AbstractWidget {
                 this.scrollY += relativeY / scale - relativeY / scaleOld;
             }
         } else {
-            float scrollDelta = (float) (scrollY * ClientModConfig.getScrollScale());
+            float scrollDelta = (float) (scrollY * CoreClientModConfig.getScrollScale());
             if (Screen.hasShiftDown()) {
                 this.scrollX += scrollDelta;
             } else
@@ -227,29 +268,47 @@ public class GraphicalEditor extends AbstractWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (this.widget != null) {
+            if (this.widget.isMouseOver(mouseX, mouseY)) {
+                return this.widget.mouseClicked(mouseX, mouseY, button);
+            } else {
+                this.widget = null;
+            }
+            return true;
+        }
         if (isPoolAreaHovered(mouseX, mouseY)) {
             this.attemptGetWidgetFromPool(mouseX - this.getX() - 60, mouseY - this.getY());
         }
         int posX = (int) (mouseX / scale - scrollX) - getX();
         int posY = (int) (mouseY / scale - scrollY) - getY();
+        InteractionData data = new InteractionData(
+                GraphicalEditor.this::setWidget,
+                GraphicalEditor.this.font,
+                (int) ClientHelper.getScreenWidth(),
+                (int) ClientHelper.getScreenHeight()
+        );
+        for (CodeElement element : this.elements) {
+            if (element.hovered(posX, posY)) {
+                if (element.interacted(posX, posY, data))
+                    return true;
+            }
+        }
         for (int i = 0; i < this.elements.size(); i++) {
             CodeElement element = this.elements.get(i);
             if (element.hovered(posX, posY)) {
-                if (element instanceof BlockCodeElement bcW) {
-                    BlockWidgetFetchResult result = bcW.fetchAndRemoveHoveredBlockWidget(posX, posY, font);
-                    if (result == null) {
-                        continue;
-                    }
-                    if (result.widget() != bcW.widget) {
-                        element.recalculateSize();
-                    }
-                    this.draggedWidget = result.widget();
-                    this.draggedOffsetX = -result.x();
-                    this.draggedOffsetY = -result.y();
-                    if (!result.removed())
-                        this.elements.remove(i);
-                    return true;
+                WidgetFetchResult result = element.fetchAndRemoveHoveredWidget(posX, posY, font);
+                if (result == null) {
+                    continue;
                 }
+                if (result.widget() != element.widget()) {
+                    element.update();
+                }
+                this.draggedWidget = result.widget();
+                this.draggedOffsetX = -result.x();
+                this.draggedOffsetY = -result.y();
+                if (!result.removed())
+                    this.elements.remove(i);
+                return true;
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -259,14 +318,12 @@ public class GraphicalEditor extends AbstractWidget {
         int uX = (int) x;
         //vPos = .75 * (translate + aPos) | / (3 / 4)
         //vPos * (4 / 3) = translate + aPos | - translate
-        //vPos * (4 / 3) + translate = aPos
-        int uY = (int) mouseY * 4 / 3 + (int) selectionScroll;
-        Holder<SelectionTab>[] tabs = this.tabs.holders().toArray(Holder[]::new);
-        for (Holder<SelectionTab> tab : tabs) {
-            SelectionTab value = tab.value();
+        //vPos * (4 / 3) - translate = aPos
+        int uY = (int) mouseY * 4 / 3 - (int) selectionScroll;
+        for (SelectionTab tab : tabs) {
             uY -= 10;
-            for (int i1 = 0; i1 < value.size(); i1++) {
-                CodeWidget widget = value.get(i1);
+            for (int i1 = 0; i1 < tab.size(); i1++) {
+                CodeWidget widget = tab.get(i1);
                 if (uY > 0 && uY < widget.getHeight()) {
                     this.draggedWidget = widget.copy();
                     this.draggedOffsetX = -uX;
@@ -280,33 +337,65 @@ public class GraphicalEditor extends AbstractWidget {
     }
 
     private boolean isPoolAreaHovered(double mouseX, double mouseY) {
-        return mouseX > this.getX() + 60 && mouseX < this.getX() + 105 &&
+        return mouseX > this.getX() + 60 && mouseX < this.getX() + 120 &&
                 mouseY > this.getY() && mouseY < this.getY() + this.getHeight();
     }
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
-        if (draggedWidget != null && draggedWidget instanceof BlockCodeWidget && !isPoolAreaHovered(mouseX, mouseY)) {
+        if (this.widget != null) {
+            this.widget.mouseMoved(mouseX, mouseY);
+            return;
+        }
+        if (draggedWidget != null && !isPoolAreaHovered(mouseX, mouseY)) {
             int draggedUiX = (int) ((mouseX + draggedOffsetX) / scale - scrollX) - getX();
             int draggedUiY = (int) ((mouseY + draggedOffsetY) / scale - scrollY) - getY();
-            BlockGhostInserter inserter;
             for (CodeElement element : elements) {
-
-                if ((inserter = element.getGhostBlockWidget(draggedUiX, draggedUiY)) != null) {
-                    if (!inserter.equals(blockGhostInserter)) {
-                        if (blockGhostInserter != null)
-                            blockGhostInserter.insert(ghostElement.getChild());
-                        inserter.insertChildMiddle(ghostElement);
-                        blockGhostInserter = inserter;
-                        ghostTargetElement = element;
+                if (element instanceof BlockCodeElement bCE) {
+                    //TODO
+                    for (Connector connector : bCE.connectors) {
+                        if (connector.canConnect(element.x, element.y, draggedUiX, draggedUiY)) {
+                            if (connector == this.connector) {
+                                return;
+                            }
+                            if (connector instanceof BlockConnector bc) {
+                                if (draggedWidget instanceof StmtCodeWidget) {
+                                    if (this.connector != null)
+                                        this.connector.insert(this.ghostBlockWidget.getChild());
+                                    this.ghostBlockWidget.setChild(bc.get());
+                                    bc.insert(this.ghostBlockWidget);
+                                } else
+                                    return; //return early before connector & element are put
+                            } else {
+                                if (draggedWidget instanceof ExprCodeWidget) { //TODO add conversion between
+                                    if (this.connector != null) {
+                                        this.connector.insert(this.ghostExprOriginal);
+                                    }
+                                    this.ghostExprOriginal = connector.get();
+                                    connector.insert(this.ghostExprWidget);
+                                } else
+                                    return; //return early before connector & element are put
+                            }
+                            this.connector = connector;
+                            if (this.ghostTargetElement != null)
+                                this.ghostTargetElement.update();
+                            this.ghostTargetElement = element;
+                            element.update();
+                            return;
+                        }
                     }
-                    return;
                 }
             }
-            if (this.blockGhostInserter != null) {
-                blockGhostInserter.insert(this.ghostElement.getChild());
-                blockGhostInserter = null;
-                ghostTargetElement = null;
+            if (connector != null) {
+                if (this.connector instanceof BlockConnector) {
+                    this.connector.insert(this.ghostBlockWidget.getChild());
+                } else {
+                    this.connector.insert(this.ghostExprOriginal);
+                    this.ghostExprOriginal = null;
+                }
+                this.ghostTargetElement.update();
+                this.connector = null;
+                this.ghostTargetElement = null;
             }
         }
         super.mouseMoved(mouseX, mouseY);
@@ -314,18 +403,36 @@ public class GraphicalEditor extends AbstractWidget {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (this.widget != null) {
+            return this.widget.mouseReleased(mouseX, mouseY, button);
+        }
         if (this.draggedWidget != null) {
-            if (blockGhostInserter != null && this.draggedWidget instanceof BlockCodeWidget blockWidget) {
-                blockWidget.setBottomChild(this.ghostElement.getChild());
-                this.blockGhostInserter.insert(blockWidget);
-                this.blockGhostInserter = null;
-                this.ghostTargetElement.recalculateSize();
+            if (connector != null) {
+                if (draggedWidget instanceof StmtCodeWidget bcw) {
+                    bcw.setBottomChild(this.ghostBlockWidget.getChild());
+                } else {
+                    CodeWidget original = ghostExprOriginal;
+                    if (!(original instanceof ParamWidget)) { //can be ignored as they are fallback
+                        int uiX = (int) (mouseX / scale - scrollX) - getX();
+                        int uiY = (int) (mouseY / scale - scrollY) - getY();
+
+                        this.elements.addLast(new ExprCodeElement(uiX, uiY, (ExprCodeWidget) original));
+                    }
+                }
+                connector.insert(draggedWidget);
+                this.connector = null;
+                this.ghostTargetElement.update();
                 this.ghostTargetElement = null;
-            } else if (!isPoolAreaHovered(mouseX, mouseY)) { //if pool is hovered, delete the widget
+                this.draggedWidget = null;
+                return true;
+            } else if (
+                    !(mouseX > this.getX() && mouseX < this.getX() + 120 &&
+                            mouseY > this.getY() && mouseY < this.getY() + this.getHeight())
+            ) { //if pool is hovered, delete the widget
                 int uiX = (int) (mouseX / scale - scrollX) - getX();
                 int uiY = (int) (mouseY / scale - scrollY) - getY();
 
-                if (this.draggedWidget instanceof BlockCodeWidget bCW) {
+                if (this.draggedWidget instanceof StmtCodeWidget bCW) {
                     this.elements.addFirst(new BlockCodeElement(uiX + this.draggedOffsetX, uiY + this.draggedOffsetY, bCW)); //add as first view and access
                 } else {
                     this.elements.addFirst(new ExprCodeElement(uiX + this.draggedOffsetX, uiY + this.draggedOffsetY, (ExprCodeWidget) this.draggedWidget));
@@ -337,55 +444,112 @@ public class GraphicalEditor extends AbstractWidget {
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
-    private abstract static class CodeElement {
+    private void setWidget(@Nullable PositionedWidget widget) {
+        this.widget = widget;
+    }
+
+    public void updateContentFrom(GraphicalEditor original) {
+        if (original != null) {
+            this.elements.clear();
+            this.elements.addAll(original.elements);
+        }
+    }
+
+    //region element
+    private abstract class CodeElement {
         protected final int x;
         protected final int y;
         protected int width;
         protected int height;
+        protected final CodeWidget widget;
+        private final List<CodeInteraction> interactions = new ArrayList<>();
+        protected final List<Connector> connectors = new ArrayList<>();
 
-        private CodeElement(int x, int y) {
+        private CodeElement(int x, int y, CodeWidget widget) {
             this.x = x;
             this.y = y;
+            this.widget = widget;
+        }
+
+        protected CodeWidget widget() {
+            return widget;
         }
 
         protected abstract int calculateWidgetWidth();
 
         protected abstract int calculateWidgetHeight();
 
-        public boolean hovered(int mouseX, int mouseY) {
-            return mouseX > this.x && mouseX < this.x + this.width &&
-                    mouseY > this.y && mouseY < this.y + this.height;
+        public boolean hovered(int mouseUiX, int mouseUiY) {
+            return mouseUiX > this.x && mouseUiX < this.x + this.width &&
+                    mouseUiY > this.y && mouseUiY < this.y + this.height;
         }
 
         public boolean visible(int minX, int minY, int maxX, int maxY) {
             return this.x + width > minX || this.y + height > minY || this.x < maxX || this.y < maxY;
         }
 
-        public void recalculateSize() {
+        public void update() {
+            this.connectors.clear();
+            this.widget().collectConnectors(0, 0, font, this.connectors::add);
+            this.widget.update(null, font);
             this.width = calculateWidgetWidth();
             this.height = calculateWidgetHeight();
+            this.updateInteractions();
         }
 
-        public abstract void render(GuiGraphics pGuiGraphics, Font font, int x, int y);
+        protected void updateInteractions() {
+            this.interactions.clear();
+            this.widget.registerInteractions(this.x, this.y, font, this.interactions::add);
+        }
+
+        public void render(GuiGraphics pGuiGraphics, Font font, int x, int y) {
+            if (renderDebug)
+                pGuiGraphics.fill(x, y, x + this.width, y + this.height, 0x8000FF00);
+            this.widget.render(pGuiGraphics, font, x, y);
+            if (renderDebug) {
+                PoseStack pose = pGuiGraphics.pose();
+                pose.pushPose();
+                pose.translate(x, y, 0);
+                for (Connector connector : this.connectors) {
+                    connector.renderDebug(pGuiGraphics);
+                }
+                pose.popPose();
+                for (CodeInteraction interaction : this.interactions) {
+                    interaction.renderDebug(pGuiGraphics);
+                }
+            }
+        }
+
+        public WidgetFetchResult fetchAndRemoveHoveredWidget(int posX, int posY, Font font) {
+            return this.widget.fetchAndRemoveHovered(posX - x, posY - y, font);
+        }
+
+        public boolean interacted(int posX, int posY, InteractionData data) {
+            for (CodeInteraction interaction : this.interactions) {
+                if (interaction.hovered(posX, posY)) {
+                    interaction.onClickRelative(posX, posY, data);
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private class BlockCodeElement extends CodeElement {
-        private final @NotNull BlockCodeWidget widget;
 
-        private BlockCodeElement(@NotNull BlockCodeWidget widget) {
-            this(100, 100, widget);
+        private BlockCodeElement(@NotNull StmtCodeWidget widget) {
+            this(150, 40, widget);
         }
 
-        private BlockCodeElement(int x, int y, @NotNull BlockCodeWidget widget) {
-            super(x, y);
-            this.widget = widget;
-            this.recalculateSize();
+        private BlockCodeElement(int x, int y, @NotNull StmtCodeWidget widget) {
+            super(x, y, widget);
+            this.update();
         }
 
         @Override
         protected int calculateWidgetWidth() {
             Integer width = null;
-            BlockCodeWidget blockWidget = this.widget;
+            StmtCodeWidget blockWidget = this.widget();
             do {
                 if (width == null || blockWidget.getWidth(font) > width) {
                     width = blockWidget.getWidth(font);
@@ -397,7 +561,7 @@ public class GraphicalEditor extends AbstractWidget {
 
         protected int calculateWidgetHeight() {
             int height = 0;
-            BlockCodeWidget blockWidget = this.widget;
+            StmtCodeWidget blockWidget = this.widget();
             do {
                 height += blockWidget.getHeight();
                 blockWidget = blockWidget.getChild();
@@ -405,27 +569,17 @@ public class GraphicalEditor extends AbstractWidget {
             return height;
         }
 
-        public BlockWidgetFetchResult fetchAndRemoveHoveredBlockWidget(int posX, int posY, Font font) {
-            return this.widget.fetchAndRemoveHovered(posX - x, posY - y, font);
-        }
-
-        public BlockGhostInserter getGhostBlockWidget(int draggedUiX, int draggedUiY) {
-            return this.widget.getGhostBlockWidgetTarget(draggedUiX - this.x, draggedUiY - this.y);
-        }
-
         @Override
-        public void render(GuiGraphics pGuiGraphics, Font font, int x, int y) {
-            this.widget.render(pGuiGraphics, font, x, y);
+        public @NotNull StmtCodeWidget widget() {
+            return (StmtCodeWidget) this.widget;
         }
     }
 
     private class ExprCodeElement extends CodeElement {
-        private final ExprCodeWidget widget;
 
         private ExprCodeElement(int x, int y, ExprCodeWidget widget) {
-            super(x, y);
-            this.widget = widget;
-            this.recalculateSize();
+            super(x, y, widget);
+            this.update();
         }
 
         @Override
@@ -439,13 +593,16 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public void render(GuiGraphics pGuiGraphics, Font font, int x, int y) {
-            this.widget.render(pGuiGraphics, font, x, y);
+        public @NotNull ExprCodeWidget widget() {
+            return (ExprCodeWidget) this.widget;
         }
     }
+    //endregion
 
-    private class GhostBlockWidget extends BlockCodeWidget {
+    //region ghost
+    private class GhostStmtWidget extends StmtCodeWidget {
 
+        @SuppressWarnings("DataFlowIssue")
         @Override
         public @NotNull Type getType() {
             return null;
@@ -462,8 +619,7 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public BlockGhostInserter getGhostBlockWidgetTarget(int x, int y) {
-            return null;
+        public void collectConnectors(int aX, int aY, Font font, Consumer<Connector> collector) {
         }
 
         @Override
@@ -480,8 +636,82 @@ public class GraphicalEditor extends AbstractWidget {
         }
 
         @Override
-        public BlockCodeWidget copy() {
+        public void registerInteractions(int xOrigin, int yOrigin, Font font, Consumer<CodeInteraction> sink) {
+        }
+
+        @Override
+        public StmtCodeWidget copy() {
             throw new IllegalAccessError("attempting to copy ghost widget");
         }
+
+        @Override
+        public void insertByName(@NotNull String arg, @NotNull ExprCodeWidget obj) {
+            throw new IllegalAccessError("can not insert into ghost");
+        }
+
+        @Override
+        public CodeWidget getByName(String arg) {
+            throw new IllegalAccessError("can not get from ghost");
+        }
+
     }
+
+    private class GhostExprWidget implements ExprCodeWidget {
+
+        @SuppressWarnings("DataFlowIssue")
+        @Override
+        public @NotNull Type getType() {
+            return null;
+        }
+
+        @Override
+        public void render(GuiGraphics graphics, Font font, int renderX, int renderY) {
+
+        }
+
+        @Override
+        public int getWidth(Font font) {
+            return draggedWidget.getWidth(font);
+        }
+
+        @Override
+        public int getHeight() {
+            return draggedWidget.getHeight();
+        }
+
+        @Override
+        public ExprCodeWidget copy() {
+            return null;
+        }
+
+        @Override
+        public void collectConnectors(int aX, int aY, Font font, Consumer<Connector> collector) {
+        }
+
+        @Override
+        public void update(@Nullable MethodContext context, Font font) {
+
+        }
+
+        @Override
+        public @Nullable WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
+            return null;
+        }
+
+        @Override
+        public void registerInteractions(int xOrigin, int yOrigin, Font font, Consumer<CodeInteraction> sink) {
+
+        }
+
+        @Override
+        public void insertByName(@NotNull String arg, @NotNull ExprCodeWidget obj) {
+            throw new IllegalAccessError("can not insert into ghost");
+        }
+
+        @Override
+        public CodeWidget getByName(String arg) {
+            throw new IllegalAccessError("can not get from ghost");
+        }
+    }
+    //endregion
 }
