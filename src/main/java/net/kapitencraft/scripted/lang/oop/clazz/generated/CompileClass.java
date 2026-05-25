@@ -3,10 +3,10 @@ package net.kapitencraft.scripted.lang.oop.clazz.generated;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.kapitencraft.kap_lib.core.collection.MapStream;
-import net.kapitencraft.scripted.lang.bytecode.storage.annotation.Annotation;
-import net.kapitencraft.scripted.lang.compiler.CacheBuilder;
+import net.kapitencraft.scripted.lang.compiler.bytecode.CacheBuilder;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
 import net.kapitencraft.scripted.lang.func.ScriptedCallable;
+import net.kapitencraft.scripted.lang.holder.bytecode.annotation.Annotation;
 import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;
 import net.kapitencraft.scripted.lang.oop.clazz.CacheableClass;
 import net.kapitencraft.scripted.lang.oop.clazz.ScriptedClass;
@@ -24,6 +24,7 @@ import java.util.Map;
 
 public final class CompileClass implements CacheableClass, ScriptedClass {
     private final GeneratedMethodMap methods;
+    private final Map<String, DataMethodContainer> allMethods;
 
     private final Map<String, CompileField> allFields;
 
@@ -42,6 +43,7 @@ public final class CompileClass implements CacheableClass, ScriptedClass {
                         ClassReference[] implemented,
                         short modifiers, Annotation[] annotations) {
         this.methods = new GeneratedMethodMap(methods);
+        this.allMethods = methods;
         this.allFields = fields;
         this.superclass = superclass;
         this.name = name;
@@ -108,7 +110,7 @@ public final class CompileClass implements CacheableClass, ScriptedClass {
     @Override
     public String toString() { //jesus
         return "GeneratedClass{" + name + "}[" +
-                "methods=" + methods + ", " +
+                "methods=" + allMethods + ", " +
                 "fields=" + allFields + ", " +
                 "superclass=" + superclass + ']';
     }

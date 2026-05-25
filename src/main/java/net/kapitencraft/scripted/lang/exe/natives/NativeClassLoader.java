@@ -3,13 +3,13 @@ package net.kapitencraft.scripted.lang.exe.natives;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-import net.kapitencraft.scripted.lang.bytecode.storage.annotation.Annotation;
 import net.kapitencraft.scripted.lang.compiler.Modifiers;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
 import net.kapitencraft.scripted.lang.exe.natives.impl.NativeClassImpl;
 import net.kapitencraft.scripted.lang.exe.natives.impl.NativeConstructor;
 import net.kapitencraft.scripted.lang.exe.natives.impl.NativeMethod;
 import net.kapitencraft.scripted.lang.func.ScriptedCallable;
+import net.kapitencraft.scripted.lang.holder.bytecode.annotation.Annotation;
 import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;
 import net.kapitencraft.scripted.lang.oop.clazz.PrimitiveClass;
 import net.kapitencraft.scripted.lang.oop.clazz.ScriptedClass;
@@ -127,7 +127,7 @@ public class NativeClassLoader {
      * creates and registers a native class for the given java class
      * <br>Developers should use {@link ScriptedPlugin} or {@link NativeClass}
      *
-     * @param clazz         the target to create & register
+     * @param clazz the target to create & register
      */
     private static void createNativeClass(Class<?> clazz, String className, String pck, @Nullable String[] capturedMethods, @Nullable String[] capturedFields, ResourceKey<? extends Registry<?>> owner) {
         try {
@@ -209,10 +209,6 @@ public class NativeClassLoader {
             getClass(c).ifPresent(extensions::add);
         }
         return extensions.toArray(ClassReference[]::new);
-    }
-
-    private static Optional<ClassReference> getClassOrThrowIfAllowed(Class<?> type, boolean ignoreMissing) {
-        return type == null ? null : ignoreMissing ? getClass(type) : Optional.ofNullable(getClassOrThrow(type));
     }
 
     private static ClassReference getClassOrThrow(Class<?> aClass) {

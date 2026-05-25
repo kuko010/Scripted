@@ -1,10 +1,15 @@
 package net.kapitencraft.scripted.lang.exe.load;
 
-
-import net.kapitencraft.scripted.Scripted;
-import net.kapitencraft.scripted.lang.compiler.*;
+import net.kapitencraft.scripted.lang.compiler.Compiler;
+import net.kapitencraft.scripted.lang.compiler.Lexer;
+import net.kapitencraft.scripted.lang.compiler.MethodLookup;
+import net.kapitencraft.scripted.lang.compiler.analyser.SemanticAnalyser;
+import net.kapitencraft.scripted.lang.compiler.bytecode.CacheBuilder;
 import net.kapitencraft.scripted.lang.compiler.parser.HolderParser;
 import net.kapitencraft.scripted.lang.compiler.parser.StmtParser;
+import net.kapitencraft.scripted.lang.compiler.parser.VarTypeContainer;
+import net.kapitencraft.scripted.lang.holder.baked.BakedClass;
+import net.kapitencraft.scripted.lang.holder.oop.clazz.ClassConstructor;
 import net.kapitencraft.scripted.lang.holder.token.Token;
 import net.kapitencraft.scripted.lang.oop.clazz.CacheableClass;
 import net.kapitencraft.scripted.lang.oop.clazz.ScriptedClass;
@@ -21,10 +26,10 @@ import java.util.Objects;
 public class CompilerLoaderHolder extends ClassLoaderHolder<CompilerLoaderHolder> {
     private final String content;
     private final Compiler.ErrorStorage storage;
-    private Holder.Class holder;
+    private ClassConstructor holder;
     private Compiler.ClassBuilder builder;
     private CacheableClass target;
-    private final VarTypeParser varTypeParser;
+    private final VarTypeContainer varTypeContainer;
 
     public CompilerLoaderHolder(File file, String pck) {
         super(file, pck);
@@ -37,15 +42,15 @@ public class CompilerLoaderHolder extends ClassLoaderHolder<CompilerLoaderHolder
                 content.split("\n", Integer.MAX_VALUE), //second param required to not skip empty lines
                 file.getAbsolutePath().replace(".\\", "") //remove '\.\'
         );
-        this.varTypeParser = new VarTypeParser();
+        this.varTypeContainer = new VarTypeContainer();
     }
 
-    public CompilerLoaderHolder(Holder.Class holder, Compiler.ErrorStorage storage, VarTypeParser parser) {
+    public CompilerLoaderHolder(ClassConstructor holder, Compiler.ErrorStorage storage, VarTypeContainer parser) {
         super(null, null);
         this.content = null; //not necessary with the holder already present
         this.storage = storage;
         this.holder = holder;
-        this.varTypeParser = parser;
+        this.varTypeContainer = parser;
     }
 
     public void parseSource() {
@@ -54,9 +59,9 @@ public class CompilerLoaderHolder extends ClassLoaderHolder<CompilerLoaderHolder
         List<Token> tokens = lexer.scanTokens();
         String fileName = file.getName().replace(".scr", "");
         HolderParser parser = new HolderParser(storage);
-        parser.apply(tokens.toArray(new Token[0]), varTypeParser);
+        parser.apply(tokens.toArray(new Token[0]), varTypeContainer);
 
-        Holder.Class decl = parser.parseFile(fileName);
+        ClassConstructor decl = parser.parseFile(fileName);
 
         if (decl == null) return;
 
@@ -75,8 +80,15 @@ public class CompilerLoaderHolder extends ClassLoaderHolder<CompilerLoaderHolder
     public void construct() {
         if (!checkHolderCreated()) return;
         StmtParser stmtParser = new StmtParser(this.storage);
+        SemanticAnalyser analyser = new SemanticAnalyser(this.storage);
 
-        builder = holder.construct(stmtParser, this.varTypeParser, this.storage);
+        stmtParser.pushFallback(this.holder.target());
+        builder = holder.construct(stmtParser, analyser, this.varTypeContainer, this.storage);
+        stmtParser.popFallback();
+    }
+
+    public void analyse() {
+        builder.analyse();
     }
 
     public void cache() {
@@ -89,7 +101,7 @@ public class CompilerLoaderHolder extends ClassLoaderHolder<CompilerLoaderHolder
                     target.name()
             );
         } catch (IOException e) {
-            Scripted.LOGGER.warn("Error saving class '{}': {}", target.absoluteName(), e.getMessage());
+            System.err.println("Error saving class '" + target.absoluteName() + "': " + e.getMessage());
         }
     }
 
@@ -106,12 +118,11 @@ public class CompilerLoaderHolder extends ClassLoaderHolder<CompilerLoaderHolder
         if (!checkHolderCreated()) return;
 
         if (builder.superclass() != null) {
-            MethodLookup lookup = new MethodLookup(builder.superclass().get(), builder.interfaces());
-            //TODO
-            //lookup.checkAbstract(storage, builder.name(), builder.methods());
-            //if (builder instanceof BakedClass) {
-            //    lookup.checkFinal(storage, builder.methods());
-            //}
+            MethodLookup lookup = MethodLookup.createFromClass(builder.superclass().get(), builder.interfaces());
+            lookup.checkAbstract(storage, builder.name(), builder.methods());
+            if (builder instanceof BakedClass) {
+                lookup.checkFinal(storage, builder.methods());
+            }
         }
         target = builder.build();
         this.holder.target().setTarget((ScriptedClass) target);
@@ -119,7 +130,7 @@ public class CompilerLoaderHolder extends ClassLoaderHolder<CompilerLoaderHolder
 
     public void validate() {
         if (!checkHolderCreated()) return;
-        this.varTypeParser.validate(this.storage);
+        this.varTypeContainer.validate(this.storage);
         this.holder.validate(this.storage);
     }
 

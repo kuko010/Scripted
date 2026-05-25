@@ -1,7 +1,7 @@
 package net.kapitencraft.scripted.lang.oop.method.annotation;
 
-import net.kapitencraft.scripted.lang.bytecode.storage.annotation.Annotation;
 import net.kapitencraft.scripted.lang.holder.ast.Expr;
+import net.kapitencraft.scripted.lang.holder.bytecode.annotation.Annotation;
 import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;
 
 public class CompileAnnotationCallable extends AnnotationCallable {

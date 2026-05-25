@@ -2,7 +2,7 @@ package net.kapitencraft.scripted.lang.exe;
 
 import net.kapitencraft.scripted.lang.exe.natives.NativeClassLoader;
 import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;
-import net.kapitencraft.scripted.lang.holder.class_ref.SourceClassReference;
+import net.kapitencraft.scripted.lang.holder.class_ref.SourceReference;
 import net.kapitencraft.scripted.lang.holder.class_ref.generic.GenericClassReference;
 import net.kapitencraft.scripted.lang.holder.token.Token;
 import net.kapitencraft.scripted.lang.oop.Package;
@@ -24,7 +24,7 @@ public class VarTypeManager {
     private static final HashMap<String, ScriptedClass> flatMap = new HashMap<>();
 
     private static PrimitiveClass registerPrimitive(PrimitiveClass primitiveClass) {
-        LANG_ROOT.addClass(primitiveClass.name(), primitiveClass);
+        VarTypeManager.getOrCreatePackage("scripted.lang").addClass(primitiveClass.name(), primitiveClass);
         return primitiveClass;
     }
 
@@ -148,7 +148,7 @@ public class VarTypeManager {
             }
             pg = pg.getPackage(lexeme);
         }
-        Token token = s.getLast();
+        Token token = s.get(s.size()-1);
         String lexeme = token.lexeme();
         if (!pg.hasClass(lexeme)) {
             error.accept(token, "unknown class '" + lexeme + "'");
@@ -157,20 +157,19 @@ public class VarTypeManager {
         return pg.getClass(lexeme);
     }
 
-    public static SourceClassReference getOrCreateClass(List<Token> path) {
+    public static SourceReference getOrCreateClass(List<Token> path) {
         Package pg = rootPackage();
         for (int i = 0; i < path.size() - 1; i++) {
             String pckName = path.get(i).lexeme();
             pg = pg.getOrCreatePackage(pckName);
         }
         Token last = path.getLast();
-        return SourceClassReference.from(last, pg.getOrCreateClass(last.lexeme()));
+        return SourceReference.from(last, pg.getOrCreateClass(last.lexeme()));
     }
 
     private static ClassReference getMainClass(String name) {
         return LANG_ROOT.getClass(name);
     }
-
 
     private static ClassReference getAnnotationClass(String name) {
         return ANNOTATION_PCK.getClass(name);
@@ -259,7 +258,7 @@ public class VarTypeManager {
             case 'L' -> {
                 String type = reader.readUntil(';');
                 reader.skip();
-                yield getClassForName(type.replaceAll("[/$]", "."));
+                yield getClassForName(replaceSourceChars(type));
             }
             default -> throw new IllegalArgumentException("unknown type start: '" + reader.peek(-1) + "'");
         };
@@ -285,6 +284,17 @@ public class VarTypeManager {
         };
     }
 
+    private static String replaceSourceChars(String in) {
+        StringBuilder s = new StringBuilder();
+        for (char c : in.toCharArray()) {
+            if (c == '/' || c == '$')
+                s.append('.');
+            else
+                s.append(c);
+        }
+        return s.toString();
+    }
+
     public static ClassReference directParseTypeCompiler(String name) {
         return switch (name) {
             case "N" -> VarTypeManager.NUMBER.reference();
@@ -298,7 +308,7 @@ public class VarTypeManager {
                 if (name.startsWith("[")) {
                     yield directParseTypeCompiler(name.substring(1));
                 } else if (name.startsWith("L")) {
-                    yield getClassForName(name.substring(1, name.length() - 1).replaceAll("[/$]", "."));
+                    yield getClassForName(replaceSourceChars(name.substring(1, name.length() - 1)));
                 }
                 throw new IllegalArgumentException("unknown type pattern: '" + name + "'");
             }
