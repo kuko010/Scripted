@@ -1,7 +1,7 @@
 package net.kapitencraft.scripted.lang.holder.class_ref;
 
-import net.kapitencraft.scripted.lang.compiler.Holder;
 import net.kapitencraft.scripted.lang.holder.class_ref.generic.GenericStack;
+import net.kapitencraft.scripted.lang.holder.oop.generic.Generics;
 import net.kapitencraft.scripted.lang.oop.clazz.ScriptedClass;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,7 +69,7 @@ public class ClassReference implements Supplier<ScriptedClass> {
         return target != null;
     }
 
-    public Holder.Generics getGenerics() {
+    public Generics getGenerics() {
         return get().getGenerics();
     }
 

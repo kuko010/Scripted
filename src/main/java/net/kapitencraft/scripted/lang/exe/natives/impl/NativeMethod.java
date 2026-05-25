@@ -1,8 +1,8 @@
 package net.kapitencraft.scripted.lang.exe.natives.impl;
 
-import net.kapitencraft.scripted.lang.bytecode.exe.VirtualMachine;
 import net.kapitencraft.scripted.lang.compiler.Modifiers;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
+import net.kapitencraft.scripted.lang.exe.VirtualMachine;
 import net.kapitencraft.scripted.lang.exe.natives.NativeClassInstance;
 import net.kapitencraft.scripted.lang.exe.natives.NativeClassLoader;
 import net.kapitencraft.scripted.lang.func.ScriptedCallable;
@@ -40,11 +40,10 @@ public class NativeMethod implements ScriptedCallable {
     @Override
     public Object call(Object[] arguments) {
         try {
-            Object o = method.invoke(instance ? NativeClassLoader.extractNative(arguments[0]) : null, NativeClassLoader.extractNatives(arguments, instance));
-            if (this.type.get() instanceof PrimitiveClass) {
-                return o;
-            }
-            return new NativeClassInstance((NativeClassImpl) this.type.get(), o);
+            Object val = method.invoke(instance ? NativeClassLoader.extractNative(arguments[0]) : null, NativeClassLoader.extractNatives(arguments, instance));
+            if (type.get() instanceof PrimitiveClass)
+                return val;
+            return new NativeClassInstance((NativeClassImpl) type.get(), val);
         } catch (IllegalAccessException | InvocationTargetException e) {
             VirtualMachine.handleException(VirtualMachine.createException(VarTypeManager.FUNCTION_CALL_ERROR, e.getMessage()));
         } catch (Throwable e) {

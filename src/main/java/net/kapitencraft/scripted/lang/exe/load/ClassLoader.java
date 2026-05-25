@@ -4,7 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
 import net.kapitencraft.scripted.Scripted;
-import net.kapitencraft.scripted.lang.bytecode.exe.Disassembler;
+import net.kapitencraft.scripted.lang.exe.Disassembler;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
 import net.kapitencraft.scripted.lang.func.ScriptedCallable;
 import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;
@@ -15,12 +15,10 @@ import net.minecraft.util.GsonHelper;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -50,7 +48,7 @@ public class ClassLoader {
                         String name = string + "(" + VarTypeManager.getArgsSignature(method.argTypes()) + ")" + VarTypeManager.getClassName(method.retType().get());
                         if (method.isNative()) {
                             System.out.println("== " + name + " ==");
-                            System.out.println("<native>");
+                            System.out.println("<Native>");
                         } else {
                             Disassembler.disassemble(method.getChunk(), name);
                         }
@@ -106,7 +104,26 @@ public class ClassLoader {
     }
 
     public static void generateClasses(PackageHolder<VMLoaderHolder> root) {
-        useClasses(root, (classes, pck) -> classes.forEach((name, holder1) -> pck.addNullableClass(name, holder1.loadClass())));
+        record Entry(VMLoaderHolder holder, String name, Package pck) {}
+
+        List<Entry> entries = new ArrayList<>();
+
+        useClasses(root, (classes, pck) -> classes.forEach((name, holder1) -> entries.add(new Entry(holder1, name, pck))));
+
+        //elements are sorted so that the first elements have only native or no parent to ensure classes
+        // with in-code parents loading after their parent and its methods
+        Comparator<Entry> sortFunction = (o1, o2) -> {
+            ScriptedClass o1Class = o1.holder.reference.get();
+            ScriptedClass o2Class = o2.holder.reference.get();
+            return o1Class.isChildOf(o2Class) ? 1 : o2Class.isChildOf(o1Class) ? -1 : o1.name.compareTo(o2.name);
+        };
+
+        Entry[] values = entries.toArray(new Entry[0]);
+        Arrays.sort(values, sortFunction);
+
+        for (Entry entry : values) {
+            entry.pck.addNullableClass(entry.name, entry.holder.loadClass());
+        }
     }
 
     //how should I name this...
@@ -129,12 +146,22 @@ public class ClassLoader {
         List<CompletableFuture<?>> futures = new ArrayList<>();
         List<Pair<PackageHolder<T>, Package>> packageData = new ArrayList<>();
         packageData.add(Pair.of(root, VarTypeManager.rootPackage()));
+        AtomicInteger completed = new AtomicInteger(0);
+        int total = root.size();
         while (!packageData.isEmpty()) {
             Pair<PackageHolder<T>, Package> data = packageData.getFirst();
             PackageHolder<T> holder = data.getFirst();
             Package pck = data.getSecond();
             holder.classes.forEach((n, o) ->
-                    futures.add(CompletableFuture.runAsync(() -> consumer.accept(o), executor))
+                    futures.add(CompletableFuture.runAsync(() -> consumer.accept(o), executor)
+                            .whenComplete((v, ex) -> {
+                                if (ex != null) {
+                                    System.err.printf("error in thread: %s: %s\n", o.toString(), ex.getMessage());
+                                    System.exit(1);
+                                }
+                                int done = completed.incrementAndGet();
+                                printProgress(done, total);
+                            }))
             );
             holder.packages.forEach((name, holder1) ->
                     packageData.add(Pair.of(holder1, pck.getOrCreatePackage(name))) //adding all packages back to the queue
@@ -142,6 +169,22 @@ public class ClassLoader {
             packageData.removeFirst();
         }
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+        printProgress(total, total);
+        System.out.println();
+    }
+
+    static void printProgress(int done, int total) {
+        int width = 40; // bar width
+        int progress = (int) ((done / (double) total) * width);
+
+        String bar = "[" +
+                "=".repeat(progress) +
+                " ".repeat(width - progress) +
+                "]";
+
+        int percent = (int) ((done / (double) total) * 100);
+
+        System.out.print("\r" + bar + " " + percent + "% (" + done + "/" + total + ")");
     }
 
     public static ClassReference loadClassReference(JsonObject object, String elementName) {
@@ -172,6 +215,14 @@ public class ClassLoader {
         public void forEach(Consumer<T> sink) {
             classes.values().forEach(sink);
             packages.values().forEach(h -> h.forEach(sink));
+        }
+
+        public int size() {
+            int size = this.classes.size();
+            for (PackageHolder<T> value : this.packages.values()) {
+                size += value.size();
+            }
+            return size;
         }
     }
 

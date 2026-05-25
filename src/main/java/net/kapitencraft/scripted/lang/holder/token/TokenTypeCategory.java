@@ -8,7 +8,6 @@ public enum TokenTypeCategory {
     EQUALITY,
     COMPARATORS,
     OPERATION_ASSIGN,
-    BOOL_BINARY,
-    PACKAGE_DEF,
-    KEY_WORD
+    BOOL_BINARY, KEY_WORD,
+    SWITCH_KEYWORD
 }
