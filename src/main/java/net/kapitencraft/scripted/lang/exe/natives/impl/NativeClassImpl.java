@@ -1,5 +1,6 @@
 package net.kapitencraft.scripted.lang.exe.natives.impl;
 
+import net.kapitencraft.scripted.lang.compiler.MethodLookup;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
 import net.kapitencraft.scripted.lang.exe.natives.NativeClassLoader;
 import net.kapitencraft.scripted.lang.func.ScriptedCallable;
@@ -20,6 +21,7 @@ import java.util.Map;
 @ApiStatus.Internal
 public class NativeClassImpl implements ScriptedClass {
     private final GeneratedMethodMap methods;
+    private MethodLookup lookup;
     private final Map<String, NativeField> fields;
     private final ClassReference superclass;
     private final ClassReference[] interfaces;
@@ -68,7 +70,9 @@ public class NativeClassImpl implements ScriptedClass {
 
     @Override
     public ScriptedCallable getMethod(String signature) {
-        return methods.getMethod(signature);
+        if (this.lookup == null)
+            this.lookup = MethodLookup.createFromClass(this, this.interfaces);
+        return lookup.get(signature);
     }
 
     @Override

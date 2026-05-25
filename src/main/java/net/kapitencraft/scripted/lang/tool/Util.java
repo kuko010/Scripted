@@ -133,13 +133,13 @@ public class Util {
         return false;
     }
 
-    public static ScriptedCallable getVirtualMethod(ScriptedClass targetClass, String method, ClassReference[] args) {
+    public static Pair<ScriptedClass, ScriptedCallable> getVirtualMethod(ScriptedClass targetClass, String method, ClassReference[] args) {
         DataMethodContainer container = targetClass.getMethods().get(method);
         ScriptedCallable m;
         if (container == null || (m = container.getMethod(args)) == null) {
             return getVirtualMethod(targetClass.superclass().get(), method, args);
         }
-        return m;
+        return Pair.of(targetClass, m);
     }
 
     public static ScriptedCallable getStaticMethod(ScriptedClass targetClass, String name, ClassReference[] args) {

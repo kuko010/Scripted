@@ -147,7 +147,7 @@ public class SemanticAnalyser implements Stmt.Visitor<Void>, Expr.Visitor<ClassR
         ClassReference[] argTypes = args(args);
         ScriptedClass targetClass = objType.get();
 
-        ScriptedCallable callable;
+        Pair<ScriptedClass, ScriptedCallable> callable;
         if (!targetClass.hasMethod(name.lexeme())) {
             errorF(name, "unknown method '%s' in class %s", name.lexeme(), objType.absoluteName());
             callable = null;
@@ -156,10 +156,11 @@ public class SemanticAnalyser implements Stmt.Visitor<Void>, Expr.Visitor<ClassR
         ClassReference retType = VarTypeManager.VOID.reference();
         String signature = null;
         if (callable != null) {
-            retType = checkArguments(args, argTypes, callable, objType, name);
-            signature = VarTypeManager.getMethodSignature(targetClass, name.lexeme(), callable.argTypes());
+            ScriptedCallable method = callable.getSecond();
+            retType = checkArguments(args, argTypes, method, objType, name);
+            signature = VarTypeManager.getMethodSignature(callable.getFirst(), name.lexeme(), method.argTypes());
         }
-        return new MethodData(signature, retType, targetClass.reference(), callable == null || callable.isStatic());
+        return new MethodData(signature, retType, targetClass.reference(), callable == null || callable.getSecond().isStatic());
     }
 
     private record MethodData(String signature, ClassReference retType, ClassReference declaring, boolean isStatic) {
@@ -178,7 +179,7 @@ public class SemanticAnalyser implements Stmt.Visitor<Void>, Expr.Visitor<ClassR
             return null;
         }
 
-        return Util.getVirtualMethod(scriptedClass, "<init>", argTypes);
+        return Util.getVirtualMethod(scriptedClass, "<init>", argTypes).getSecond();
     }
 
     private record OperationInfo(ClassReference executor, ClassReference result,
@@ -225,7 +226,7 @@ public class SemanticAnalyser implements Stmt.Visitor<Void>, Expr.Visitor<ClassR
     }
 
     private void errorIncompatibleTypes(Token loc, ClassReference expected, ClassReference gotten) {
-        errorF(loc, "incompatible types: %s cannot be converted to %s", gotten, expected);
+        errorF(loc, "incompatible types: %s cannot be converted to %s", gotten.absoluteName(), expected.absoluteName());
     }
 
     private void errorIncompatibleTypes(Token loc, ClassReference got) {
@@ -904,7 +905,9 @@ public class SemanticAnalyser implements Stmt.Visitor<Void>, Expr.Visitor<ClassR
     @Override
     public Void visitVarDeclStmt(Stmt.VarDecl stmt) {
         stmt.localId = varAnalyser.add(stmt.name.lexeme(), stmt.type, !stmt.isFinal, stmt.initializer != null);
-        analyseExpr(stmt.initializer);
+        ClassReference reference = analyseExpr(stmt.initializer);
+        if (!reference.get().isChildOf(stmt.type.get()))
+            errorIncompatibleTypes(stmt.name, stmt.type, reference);
         return null;
     }
 

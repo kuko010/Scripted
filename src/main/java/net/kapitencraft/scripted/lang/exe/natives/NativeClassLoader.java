@@ -16,6 +16,7 @@ import net.kapitencraft.scripted.lang.oop.clazz.ScriptedClass;
 import net.kapitencraft.scripted.lang.oop.field.NativeField;
 import net.kapitencraft.scripted.lang.oop.method.builder.DataMethodContainer;
 import net.kapitencraft.scripted.lang.oop.method.map.AbstractMethodMap;
+import net.kapitencraft.scripted.lang.oop.method.map.GeneratedMethodMap;
 import net.kapitencraft.scripted.lang.tool.Util;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -381,7 +382,7 @@ public class NativeClassLoader {
 
         @Override
         public AbstractMethodMap getMethods() {
-            return null;
+            return new GeneratedMethodMap(Map.of());
         }
 
         @Override
