@@ -56,8 +56,12 @@ public abstract class LoopStmtWidget extends StmtCodeWidget {
         int bodyHeight = getBodyHeight();
         if (this.body != null)
             this.body.render(graphics, font, renderX + 6, renderY + headHeight);
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_ENCLOSURE, renderX, renderY + headHeight + 3, 6, bodyHeight - 3);
-        graphics.blitSprite(CodeWidgetSprites.SCOPE_END, renderX, renderY + headHeight + bodyHeight, loopWidth, 16);
+        graphics.blitSprite(CodeWidgetSprites.SCOPE_ENCLOSURE,
+                renderX, renderY + headHeight + 3, 6, bodyHeight - 3
+        );
+        graphics.blitSprite(CodeWidgetSprites.SCOPE_END,
+                renderX, renderY + headHeight + bodyHeight, loopWidth, 16
+        );
         super.render(graphics, font, renderX, renderY);
     }
 
