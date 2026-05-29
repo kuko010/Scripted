@@ -35,7 +35,7 @@
   "§else": "else do",
   "§op": "{left} {op} {right}",
 
-  "scripted.code.head.test": "A Method",
+  "scripted.code.head.test": "Scripted",
   "scripted.code.expr.test0": "a test with expr {arg0}",
   "scripted.code.expr.test1": "Some Expression",
   "scripted.code.expr.test2": "",

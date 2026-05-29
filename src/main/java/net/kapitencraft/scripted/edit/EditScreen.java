@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 
 public class EditScreen extends Screen {
     private GraphicalEditor graphicalEditor;
+    private boolean updateForOverview = false;
 
     protected EditScreen() {
         super(Component.empty());
@@ -24,6 +25,10 @@ public class EditScreen extends Screen {
         GraphicalEditor original = graphicalEditor;
         this.addRenderableWidget(this.graphicalEditor = new GraphicalEditor(10, 10, width - 20, height - 20, Component.literal("hi"), this.font, tabs));
         this.graphicalEditor.updateContentFrom(original);
+        if (updateForOverview) {
+            this.graphicalEditor.setViewData(8, -128.71f, -38.2f);
+            updateForOverview = false;
+        }
 
         //this.addRenderableWidget(box = Util.make(() -> {
         //    MultiLineTextBox box = new MultiLineTextBox(this.font, 10, 10, this.width-20, this.height-20, this.box, null);
@@ -42,5 +47,11 @@ public class EditScreen extends Screen {
     public void onClose() {
         //Compiler
         super.onClose();
+    }
+
+    public static EditScreen forOverview() {
+        EditScreen editScreen = new EditScreen();
+        editScreen.updateForOverview = true;
+        return editScreen;
     }
 }
