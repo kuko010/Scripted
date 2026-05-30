@@ -113,7 +113,6 @@ public class GraphicalEditor extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-
         int x = getX();
         int y = getY();
         pGuiGraphics.enableScissor(x, y, x + this.getWidth(), y + this.getHeight());
@@ -124,7 +123,7 @@ public class GraphicalEditor extends AbstractWidget {
             pose.pushPose();
             pose.scale(scale, scale, 1);
 
-            ResourceLocation resourcelocation = ResourceLocation.withDefaultNamespace("textures/block/white_wool.png");
+            ResourceLocation resourcelocation = ResourceLocation.withDefaultNamespace("textures/block/deepslate.png");
             int i = Mth.floor(this.scrollX);
             int j = Mth.floor(this.scrollY);
             int k = i % 16;
@@ -245,7 +244,7 @@ public class GraphicalEditor extends AbstractWidget {
             */
             float scrollOffset = (float) scrollY * .05f;
             float scaleOld = this.scale;
-            this.scale = Math.clamp(this.scale + scrollOffset, .5f, 4f);
+            this.scale = Math.clamp(this.scale + scrollOffset, .5f, 8f);
             if (scaleOld != scale) {
                 float relativeX = (float) mouseX - this.getX();
                 float relativeY = (float) mouseY - this.getY();
@@ -453,6 +452,12 @@ public class GraphicalEditor extends AbstractWidget {
             this.elements.clear();
             this.elements.addAll(original.elements);
         }
+    }
+
+    public void setViewData(float scale, float scrollX, float scrollY) {
+        this.scale = scale;
+        this.scrollX = scrollX;
+        this.scrollY = scrollY;
     }
 
     //region element
