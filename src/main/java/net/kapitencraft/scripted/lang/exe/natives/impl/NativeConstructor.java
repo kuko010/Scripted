@@ -1,7 +1,7 @@
 package net.kapitencraft.scripted.lang.exe.natives.impl;
 
-import net.kapitencraft.scripted.lang.bytecode.exe.VirtualMachine;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
+import net.kapitencraft.scripted.lang.exe.VirtualMachine;
 import net.kapitencraft.scripted.lang.exe.natives.NativeClassLoader;
 import net.kapitencraft.scripted.lang.func.ScriptedCallable;
 import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;

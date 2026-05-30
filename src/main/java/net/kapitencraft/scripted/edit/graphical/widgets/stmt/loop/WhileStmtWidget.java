@@ -117,7 +117,9 @@ public class WhileStmtWidget extends LoopStmtWidget {
     @Override
     public WidgetFetchResult fetchAndRemoveHovered(int x, int y, Font font) {
         if (y < this.getHeadHeight()) {
-            return BlockWidgetFetchResult.fromExprList(4, x, y, font, this, "§while", ArgumentStorage.createSingle("condition", this::setCondition, () -> this.condition));
+            return BlockWidgetFetchResult.fromExprList(4, x, y, font, this, "§while",
+                    ArgumentStorage.createSingle("condition", this::setCondition, () -> this.condition)
+            );
         } else if (y > this.getHeight()) {
             return super.fetchAndRemoveHovered(x, y - this.getHeight(), font);
         } else if (this.body != null) {

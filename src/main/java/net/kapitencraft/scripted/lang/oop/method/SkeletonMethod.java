@@ -4,12 +4,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
-import net.kapitencraft.scripted.lang.compiler.Holder;
 import net.kapitencraft.scripted.lang.compiler.Modifiers;
 import net.kapitencraft.scripted.lang.exe.VarTypeManager;
 import net.kapitencraft.scripted.lang.func.ScriptedCallable;
 import net.kapitencraft.scripted.lang.holder.class_ref.ClassReference;
-import net.kapitencraft.scripted.lang.holder.class_ref.SourceClassReference;
+import net.kapitencraft.scripted.lang.holder.class_ref.SourceReference;
+import net.kapitencraft.scripted.lang.holder.oop.attribute.ConstructorHolder;
+import net.kapitencraft.scripted.lang.holder.oop.attribute.MethodHolder;
 import net.kapitencraft.scripted.lang.oop.method.builder.DataMethodContainer;
 import net.kapitencraft.scripted.lang.tool.StringReader;
 import net.minecraft.util.GsonHelper;
@@ -27,17 +28,22 @@ public class SkeletonMethod implements ScriptedCallable {
         this.modifiers = modifiers;
     }
 
-    public static SkeletonMethod create(Holder.Method decl) {
+    public static SkeletonMethod create(MethodHolder decl) {
         return create(decl.params(), decl.type().getReference(), decl.modifiers());
     }
 
-    private static SkeletonMethod create(List<? extends Pair<SourceClassReference, String>> params, ClassReference type, short modifiers) {
-        return new SkeletonMethod(params.stream().map(Pair::getFirst).map(SourceClassReference::getReference).toArray(ClassReference[]::new), type, modifiers);
+    private static SkeletonMethod create(List<? extends Pair<SourceReference, String>> params, ClassReference type, short modifiers) {
+        return new SkeletonMethod(params.stream().map(Pair::getFirst).map(SourceReference::getReference).toArray(ClassReference[]::new), type, modifiers);
     }
 
-    public static SkeletonMethod create(Holder.Constructor decl, ClassReference type) {
+    public static SkeletonMethod create(ConstructorHolder decl, ClassReference type) {
         return create(decl.params(), type, (short) 0);
     }
+
+    public static SkeletonMethod createNative(ClassReference[] args, ClassReference retType, short modifiers) {
+        return new SkeletonMethod(args, retType, modifiers);
+    }
+
 
     public static SkeletonMethod fromJson(JsonObject object) {
         ClassReference retType = VarTypeManager.parseType(new StringReader(GsonHelper.getAsString(object, "retType")));
@@ -73,7 +79,7 @@ public class SkeletonMethod implements ScriptedCallable {
 
     @Override
     public Object call(Object[] arguments) {
-        return null;
+        throw new IllegalAccessError("can not call skeleton method");
     }
 
     @Override

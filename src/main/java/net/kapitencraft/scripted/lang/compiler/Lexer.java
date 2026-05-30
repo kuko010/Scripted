@@ -6,7 +6,6 @@ import net.kapitencraft.scripted.lang.holder.token.Token;
 import net.kapitencraft.scripted.lang.holder.token.TokenType;
 import net.kapitencraft.scripted.lang.holder.token.TokenTypeCategory;
 import net.kapitencraft.scripted.lang.oop.clazz.ScriptedClass;
-import net.neoforged.fml.ModList;
 
 import java.util.*;
 import java.util.function.Function;
@@ -23,8 +22,7 @@ public class Lexer {
 
     public static TokenType getType(String name) {
         if (keywords.containsKey(name)) return keywords.get(name);
-        if (ModList.get().isLoaded(name))
-            return NAMESPACE;
+
         return IDENTIFIER;
     }
 
@@ -205,8 +203,42 @@ public class Lexer {
         return c >= '0' && c <= '9';
     }
 
+    private boolean isHexadecimalDigit(char c) {
+        return c >= '0' && c <= '9' ||
+                c >= 'a' && c <= 'f' ||
+                c >= 'A' && c <= 'F';
+    }
+
+    private boolean isBinaryDigit(char c) {
+        return c == '0' || c == '1';
+    }
+
     private void number() {
         boolean seenDecimal = match('.');
+        boolean dotPrevious = false;
+        if (tokens.getLast().type() == DOT) {
+            dotPrevious = true;
+            seenDecimal = true;
+            tokens.removeLast();
+        }
+        if (source.charAt(start) == '0') {
+            if (peek() == 'x') {
+                advance();
+                do advance();
+                while (isHexadecimalDigit(peek()));
+                String literal = source.substring(start + 2, current);
+                addToken(NUM, Integer.parseInt(literal, 16), VarTypeManager.INTEGER);
+                return;
+            }
+            if (peek() == 'b') {
+                advance();
+                do advance();
+                while (isBinaryDigit(peek()));
+                String literal = source.substring(start + 2, current);
+                addToken(NUM, Integer.parseInt(literal, 2), VarTypeManager.INTEGER);
+                return;
+            }
+        }
         while (isDigit(peek())) advance();
 
         // Look for a fractional part.
@@ -216,6 +248,8 @@ public class Lexer {
             while (isDigit(peek()));
         }
         String literal = source.substring(start, current);
+        if (dotPrevious)
+            literal = "." + literal;
         if (match('f') || match('F')) { //float :hypers:
             addToken(NUM, Float.parseFloat(literal), VarTypeManager.FLOAT);
         } else if (match('d') || match('D')) {
@@ -232,8 +266,12 @@ public class Lexer {
         addToken(getType(text));
     }
 
+    //TODO add formatted strings
     private void string() {
+        //{}
+
         while (peek() != '"' && !isAtEnd() && peek() != '\n') {
+
             advance();
         }
 
